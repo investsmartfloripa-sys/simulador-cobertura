@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Simulador de Decisão · Cobertura 25%</title>
+<style>
+  :root {
+    --surface-1: #fcfcfb;
+    --page: #f9f9f7;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11,11,11,0.10);
+    --series-saque: #2a78d6;
+    --series-credito: #1baf7a;
+    --good: #006300;
+    --bad: #d03b3b;
+    --band-aplic: #898781;
+    --tooltip-bg: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-1: #1a1a19;
+      --page: #0d0d0d;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted: #898781;
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255,255,255,0.10);
+      --series-saque: #3987e5;
+      --series-credito: #199e70;
+      --good: #0ca30c;
+      --bad: #e66767;
+      --band-aplic: #898781;
+      --tooltip-bg: #242423;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page);
+    color: var(--text-primary);
+    line-height: 1.5;
+    padding: 24px 16px 64px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+
+  header h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.01em; }
+  header p.sub { color: var(--text-secondary); margin-top: 4px; max-width: 60ch; }
+
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 20px;
+  }
+  h2 { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 14px; }
+
+  /* ---------- inputs ---------- */
+  .inputs-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  @media (max-width: 900px) { .inputs-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 520px) { .inputs-grid { grid-template-columns: 1fr; } }
+  fieldset { border: none; }
+  legend { font-size: 0.8rem; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--grid); width: 100%; }
+  .field { margin-bottom: 10px; }
+  .field label { display: block; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 2px; }
+  .field input[type="text"], .field input[type="number"], .field select {
+    width: 100%; padding: 6px 8px; font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+    border: 1px solid var(--baseline); border-radius: 6px;
+    background: var(--surface-1); color: var(--text-primary);
+    font-family: inherit;
+  }
+  .field input:focus, .field select:focus { outline: 2px solid var(--series-saque); outline-offset: -1px; }
+  .hint { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+  .warn { font-size: 0.75rem; color: var(--bad); margin-top: 4px; display: none; }
+  .checkline { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--text-secondary); margin-top: 8px; }
+  .checkline input { accent-color: var(--series-saque); width: 15px; height: 15px; }
+
+  /* ---------- slider ---------- */
+  .prazo-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .prazo-row label { font-size: 0.85rem; font-weight: 600; white-space: nowrap; }
+  .prazo-row input[type="range"] { flex: 1; min-width: 200px; accent-color: var(--series-saque); }
+  .prazo-out { font-size: 0.95rem; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 170px; }
+  .prazo-out small { font-weight: 400; color: var(--text-muted); }
+
+  /* ---------- KPI cards ---------- */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 20px; }
+  @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 520px) { .kpis { grid-template-columns: 1fr; } }
+  .kpi {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+  }
+  .kpi .k-label { font-size: 0.72rem; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
+  .kpi .k-key { display: inline-block; width: 12px; height: 3px; border-radius: 2px; flex: none; }
+  .kpi .k-value { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em; margin-top: 4px; }
+  .kpi .k-sub { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .pos { color: var(--good); } .neg { color: var(--bad); }
+
+  /* ---------- charts ---------- */
+  .chart-box { position: relative; margin-top: 6px; }
+  .chart-box svg { display: block; width: 100%; height: auto; }
+  .chart-title { font-size: 0.95rem; font-weight: 600; color: var(--text-primary); }
+  .chart-sub { font-size: 0.78rem; color: var(--text-secondary); margin: 2px 0 10px; }
+  .tooltip {
+    position: absolute; pointer-events: none; display: none;
+    background: var(--tooltip-bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 10px; font-size: 0.75rem;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12); z-index: 5; min-width: 190px;
+  }
+  .tooltip .tt-head { color: var(--text-muted); margin-bottom: 4px; }
+  .tooltip .tt-row { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+  .tooltip .tt-key { width: 12px; height: 2.5px; border-radius: 2px; flex: none; }
+  .tooltip .tt-val { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .tooltip .tt-name { color: var(--text-secondary); }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 8px; font-size: 0.75rem; color: var(--text-secondary); }
+  .legend .lg { display: flex; align-items: center; gap: 6px; }
+  .legend .lg-key { width: 14px; height: 3px; border-radius: 2px; }
+  .legend .lg-band { width: 14px; height: 10px; border-radius: 2px; opacity: 0.25; }
+
+  /* ---------- breakdown ---------- */
+  .break-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  @media (max-width: 720px) { .break-grid { grid-template-columns: 1fr; } }
+  .break-grid h3 { font-size: 0.82rem; font-weight: 600; margin-bottom: 8px; }
+  .bl { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: 0.85rem; border-bottom: 1px solid var(--grid); }
+  .bl:last-child { border-bottom: none; }
+  .bl .bl-label { color: var(--text-secondary); }
+  .bl .bl-val { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .bl.total { border-top: 2px solid var(--baseline); }
+  .bl.total .bl-label { color: var(--text-primary); font-weight: 600; }
+
+  /* ---------- table ---------- */
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.83rem; min-width: 680px; }
+  th { text-align: right; font-weight: 600; color: var(--text-secondary); padding: 8px 10px; border-bottom: 2px solid var(--baseline); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  td { padding: 8px 10px; border-bottom: 1px solid var(--grid); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr.selected td { background: color-mix(in srgb, var(--series-saque) 8%, transparent); font-weight: 600; }
+  td .best { font-weight: 700; }
+
+  /* ---------- notes ---------- */
+  .notes { font-size: 0.8rem; color: var(--text-secondary); }
+  .notes ul { margin: 8px 0 0 18px; }
+  .notes li { margin-bottom: 6px; }
+  .notes strong { color: var(--text-primary); }
+  footer { margin-top: 28px; font-size: 0.72rem; color: var(--text-muted); text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Compra da cobertura — simulador da decisão de funding</h1>
+    <p class="sub">Participação de 25% em uma operação de compra, reforma e revenda.
+    Compare os dois caminhos para levantar o capital — <strong>sacar as aplicações</strong> ou
+    <strong>tomar crédito com as aplicações em garantia</strong> — e veja como o
+    <strong>prazo até a venda</strong> muda o resultado. Todos os campos são editáveis.</p>
+  </header>
+
+  <!-- ============ INPUTS ============ -->
+  <section class="card">
+    <h2>Premissas — preencha com os seus números</h2>
+    <div class="inputs-grid">
+      <fieldset>
+        <legend>A operação (valores totais)</legend>
+        <div class="field"><label for="inAquisicao">Valor de aquisição (R$)</label>
+          <input type="text" id="inAquisicao" inputmode="numeric" value="1.600.000"></div>
+        <div class="field"><label for="inObra">Custo da obra (R$)</label>
+          <input type="text" id="inObra" inputmode="numeric" value="990.000"></div>
+        <div class="field"><label for="inVenda">Valor de venda esperado (R$)</label>
+          <input type="text" id="inVenda" inputmode="numeric" value="4.500.000"></div>
+        <div class="field"><label for="inPart">Sua participação (%)</label>
+          <input type="number" id="inPart" min="1" max="100" step="0.5" value="25"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Capital &amp; aplicações</legend>
+        <div class="field"><label for="inCapital">Capital a levantar (R$)</label>
+          <input type="text" id="inCapital" inputmode="numeric" value="700.000">
+          <div class="hint" id="hintNecessidade"></div>
+          <div class="warn" id="warnCapital"></div></div>
+        <div class="field"><label for="inRendMin">Rendimento da aplicação — mínimo (% a.a.)</label>
+          <input type="number" id="inRendMin" min="0" max="40" step="0.5" value="14"></div>
+        <div class="field"><label for="inRendMax">Rendimento da aplicação — máximo (% a.a.)</label>
+          <input type="number" id="inRendMax" min="0" max="40" step="0.5" value="18"></div>
+        <div class="hint">Prefixado. A faixa vira a banda sombreada nos gráficos.</div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Crédito colateralizado</legend>
+        <div class="field"><label for="inModo">Modalidade</label>
+          <select id="inModo">
+            <option value="cdi">CDI + spread mensal (+ IOF)</option>
+            <option value="pre">Prefixado % a.m. (IOF incluso)</option>
+          </select></div>
+        <div class="field" data-modo="cdi"><label for="inCDI">CDI esperado (% a.a.)</label>
+          <input type="number" id="inCDI" min="0" max="40" step="0.1" value="15.0"></div>
+        <div class="field" data-modo="cdi"><label for="inSpread">Spread (% ao mês)</label>
+          <input type="number" id="inSpread" min="0" max="5" step="0.01" value="0.26"></div>
+        <div class="field" data-modo="pre" style="display:none"><label for="inPre">Taxa prefixada (% ao mês)</label>
+          <input type="number" id="inPre" min="0" max="10" step="0.05" value="1.5"></div>
+        <div class="hint" id="hintCredito"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Impostos</legend>
+        <div class="field"><label for="inIRGanho">IR sobre ganho de capital (%)</label>
+          <input type="number" id="inIRGanho" min="0" max="35" step="0.5" value="15"></div>
+        <label class="checkline"><input type="checkbox" id="inIRReg" checked>
+          IR regressivo sobre o rendimento da aplicação</label>
+        <div class="hint">22,5% até 6m · 20% até 1a · 17,5% até 2a · 15% acima. Aplicado automaticamente conforme o prazo.</div>
+      </fieldset>
+    </div>
+  </section>
+
+  <!-- ============ PRAZO ============ -->
+  <section class="card">
+    <div class="prazo-row">
+      <label for="inPrazo">Prazo até a venda</label>
+      <input type="range" id="inPrazo" min="3" max="36" step="1" value="12">
+      <div class="prazo-out" id="outPrazo"></div>
+    </div>
+  </section>
+
+  <!-- ============ KPIs ============ -->
+  <div class="kpis">
+    <div class="kpi">
+      <div class="k-label">Lucro do flip, líquido de IR</div>
+      <div class="k-value" id="kpiFlip"></div>
+      <div class="k-sub">não depende do prazo — a venda não corrige com o tempo</div>
+    </div>
+    <div class="kpi">
+      <div class="k-label"><span class="k-key" style="background:var(--series-saque)"></span>Caminho 1 · Sacar as aplicações</div>
+      <div class="k-value" id="kpiSaque"></div>
+      <div class="k-sub" id="kpiSaqueSub"></div>
+    </div>
+    <div class="kpi">
+      <div class="k-label"><span class="k-key" style="background:var(--series-credito)"></span>Caminho 2 · Crédito colateralizado</div>
+      <div class="k-value" id="kpiCred"></div>
+      <div class="k-sub" id="kpiCredSub"></div>
+    </div>
+    <div class="kpi">
+      <div class="k-label">Melhor caminho neste prazo</div>
+      <div class="k-value" id="kpiMelhor"></div>
+      <div class="k-sub" id="kpiMelhorSub"></div>
+    </div>
+  </div>
+
+  <!-- ============ CHART 1 ============ -->
+  <section class="card">
+    <div class="chart-title">Resultado de cada caminho, além de simplesmente manter o dinheiro aplicado</div>
+    <div class="chart-sub">Lucro do flip menos o custo do caminho escolhido (custo de oportunidade no saque; juros + IOF no crédito), pelo mês em que a venda acontecer. Acima de zero, a operação vale mais que deixar o capital rendendo.</div>
+    <div class="chart-box" id="chart1"></div>
+    <div class="legend">
+      <span class="lg"><span class="lg-key" style="background:var(--series-saque)"></span>Sacar as aplicações</span>
+      <span class="lg"><span class="lg-band" style="background:var(--series-saque)"></span>Faixa conforme rendimento (mín.–máx.)</span>
+      <span class="lg"><span class="lg-key" style="background:var(--series-credito)"></span>Crédito colateralizado</span>
+    </div>
+  </section>
+
+  <!-- ============ CHART 2 ============ -->
+  <section class="card">
+    <div class="chart-title">Rentabilidade anualizada da operação vs. deixar aplicado</div>
+    <div class="chart-sub">Como o preço de venda não aumenta com o tempo, cada mês a mais dilui o retorno anualizado. Quando a linha entra na faixa cinza, a operação passa a render o mesmo que a aplicação — e deixa de compensar o risco.</div>
+    <div class="chart-box" id="chart2"></div>
+    <div class="legend">
+      <span class="lg"><span class="lg-key" style="background:var(--series-saque)"></span>Operação (% a.a. sobre o capital próprio)</span>
+      <span class="lg"><span class="lg-band" style="background:var(--band-aplic)"></span>Aplicação, líquida de IR (faixa mín.–máx.)</span>
+    </div>
+  </section>
+
+  <!-- ============ BREAKDOWN ============ -->
+  <section class="card">
+    <h2 id="breakTitle">Abertura dos números no prazo selecionado</h2>
+    <div class="break-grid">
+      <div>
+        <h3>A operação imobiliária</h3>
+        <div id="breakOp"></div>
+      </div>
+      <div>
+        <h3>O custo de cada caminho</h3>
+        <div id="breakCusto"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TABLE ============ -->
+  <section class="card">
+    <h2>Resumo por prazo de venda</h2>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Prazo</th>
+            <th>Resultado — Saque</th>
+            <th>Resultado — Crédito</th>
+            <th>Diferença (Crédito − Saque)</th>
+            <th>Operação (% a.a.)</th>
+            <th>Aplicação líq. (% a.a.)</th>
+            <th>Melhor caminho</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="hint" id="tableNote" style="margin-top:8px"></div>
+  </section>
+
+  <!-- ============ NOTES ============ -->
+  <section class="card notes">
+    <h2>O que os números não mostram — leia antes de decidir</h2>
+    <ul>
+      <li><strong>Chamada de margem.</strong> No crédito colateralizado, se as aplicações dadas em garantia caírem de valor (prefixados marcados a mercado sofrem quando os juros sobem), a corretora pode exigir reforço de garantia ou liquidar posições no pior momento.</li>
+      <li><strong>IR antecipado no saque.</strong> Resgatar hoje antecipa o IR sobre os ganhos já acumulados na carteira e interrompe a contagem do prazo regressivo — um custo real que depende da data de cada aplicação e não está no modelo.</li>
+      <li><strong>Atraso e estouro de obra.</strong> O maior risco do flip não está nesta página: obra que atrasa empurra a venda para a direita nos gráficos, e estouro de orçamento aumenta o capital necessário. Teste cenários pessimistas nos campos acima.</li>
+      <li><strong>Preço de venda é premissa, não garantia.</strong> Refaça a leitura com a venda 10–15% abaixo do esperado antes de decidir.</li>
+      <li><strong>Custos de transação omitidos.</strong> ITBI, cartório, corretagem na venda (tipicamente 5–6%) e condomínio/IPTU durante a obra reduzem o ganho. Inclua-os no custo da obra ou desconte do valor de venda.</li>
+    </ul>
+  </section>
+
+  <footer>
+    Simulação educacional para apoio à decisão — não constitui recomendação de investimento.
+    Premissas simplificadas: aporte integral no mês zero, pagamento do crédito no ato da venda (bullet), rendimento prefixado constante.
+  </footer>
+</div>
+
+<script>
+"use strict";
+/* ================= helpers ================= */
+const $ = id => document.getElementById(id);
+const fmtBRL = v => (v < 0 ? "−" : "") + new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(Math.abs(v));
+const fmtMil = v => (v < 0 ? "−" : "") + "R$ " + Math.round(Math.abs(v) / 1000).toLocaleString("pt-BR") + " mil";
+const fmtPct = (v, d = 1) => (v * 100).toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d }) + "%";
+const moneyVal = el => Number(el.value.replace(/\D/g, "")) || 0;
+const numVal = el => Number(el.value) || 0;
+
+["inAquisicao", "inObra", "inVenda", "inCapital"].forEach(id => {
+  const el = $(id);
+  el.addEventListener("input", () => {
+    const d = el.value.replace(/\D/g, "");
+    el.value = d ? Number(d).toLocaleString("pt-BR") : "";
+    recalc();
+  });
+});
+["inPart", "inRendMin", "inRendMax", "inCDI", "inSpread", "inPre", "inIRGanho"].forEach(id =>
+  $(id).addEventListener("input", recalc));
+$("inIRReg").addEventListener("change", recalc);
+$("inPrazo").addEventListener("input", recalc);
+$("inModo").addEventListener("change", () => {
+  const modo = $("inModo").value;
+  document.querySelectorAll("[data-modo]").forEach(f => {
+    f.style.display = f.dataset.modo === modo ? "" : "none";
+  });
+  recalc();
+});
+
+/* ================= modelo ================= */
+function aliquotaRegressiva(meses) {
+  if (meses <= 6) return 0.225;
+  if (meses <= 12) return 0.20;
+  if (meses <= 24) return 0.175;
+  return 0.15;
+}
+
+function lerPremissas() {
+  const p = numVal($("inPart")) / 100;
+  const aquis = moneyVal($("inAquisicao"));
+  const obra = moneyVal($("inObra"));
+  const venda = moneyVal($("inVenda"));
+  const C = moneyVal($("inCapital"));
+  let rMin = numVal($("inRendMin")) / 100, rMax = numVal($("inRendMax")) / 100;
+  if (rMin > rMax) [rMin, rMax] = [rMax, rMin];
+  return {
+    p, aquis, obra, venda, C, rMin, rMax, rMid: (rMin + rMax) / 2,
+    irReg: $("inIRReg").checked,
+    txGanho: numVal($("inIRGanho")) / 100,
+    modo: $("inModo").value,
+    cdi: numVal($("inCDI")) / 100,
+    spreadM: numVal($("inSpread")) / 100,
+    preM: numVal($("inPre")) / 100,
+    prazo: Number($("inPrazo").value)
+  };
+}
+
+function calcFlip(P) {
+  const custoOp = P.p * (P.aquis + P.obra);
+  const receita = P.p * P.venda;
+  const ganho = receita - custoOp;
+  const ir = Math.max(0, ganho) * P.txGanho;
+  return { custoOp, receita, ganho, ir, flipLiq: ganho - ir };
+}
+
+function rendimentoLiquido(P, T, r) {
+  const bruto = P.C * (Math.pow(1 + r, T / 12) - 1);
+  return P.irReg ? bruto * (1 - aliquotaRegressiva(T)) : bruto;
+}
+
+function custoCredito(P, T) {
+  let juros, iof = 0;
+  if (P.modo === "cdi") {
+    const im = Math.pow(1 + P.cdi, 1 / 12) - 1 + P.spreadM;
+    juros = P.C * (Math.pow(1 + im, T) - 1);
+    iof = P.C * (0.0038 + 0.000082 * Math.min(T * 30, 365));
+  } else {
+    juros = P.C * (Math.pow(1 + P.preM, T) - 1);
+  }
+  return { juros, iof, total: juros + iof };
+}
+
+/* taxa anualizada da operação sobre o capital próprio (cenário saque) */
+function tirOperacao(P, flip, T) {
+  const wFinal = (P.C - flip.custoOp) + flip.receita - flip.ir;
+  if (P.C <= 0 || wFinal <= 0) return null;
+  return Math.pow(wFinal / P.C, 12 / T) - 1;
+}
+
+/* aplicação líquida de IR, anualizada para o prazo T */
+function aplicLiquidaAA(P, T, r) {
+  const fatorLiq = 1 + (Math.pow(1 + r, T / 12) - 1) * (P.irReg ? 1 - aliquotaRegressiva(T) : 1);
+  return Math.pow(fatorLiq, 12 / T) - 1;
+}
+
+const MESES = []; for (let m = 3; m <= 36; m++) MESES.push(m);
+
+function calcSeries(P) {
+  const flip = calcFlip(P);
+  const s = { saqueMid: [], saqueMin: [], saqueMax: [], cred: [], tir: [], aplicLo: [], aplicHi: [] };
+  for (const T of MESES) {
+    s.saqueMid.push(flip.flipLiq - rendimentoLiquido(P, T, P.rMid));
+    // rendimento maior => custo de oportunidade maior => resultado pior
+    s.saqueMin.push(flip.flipLiq - rendimentoLiquido(P, T, P.rMax));
+    s.saqueMax.push(flip.flipLiq - rendimentoLiquido(P, T, P.rMin));
+    s.cred.push(flip.flipLiq - custoCredito(P, T).total);
+    s.tir.push(tirOperacao(P, flip, T));
+    s.aplicLo.push(aplicLiquidaAA(P, T, P.rMin));
+    s.aplicHi.push(aplicLiquidaAA(P, T, P.rMax));
+  }
+  return { flip, s };
+}
+
+/* ================= gráfico SVG ================= */
+function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+function niceTicks(lo, hi, n = 5) {
+  if (lo === hi) { lo -= 1; hi += 1; }
+  const span = hi - lo, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
+  let step = mag;
+  for (const m of [1, 2, 2.5, 5, 10]) if (step0 / mag <= m) { step = m * mag; break; }
+  const t = [], start = Math.ceil(lo / step) * step;
+  for (let v = start; v <= hi + step * 1e-6; v += step) t.push(Math.abs(v) < step * 1e-6 ? 0 : v);
+  return t;
+}
+
+function drawChart(boxId, cfg) {
+  const box = $(boxId);
+  box.innerHTML = "";
+  const W = box.clientWidth || 900, H = 340;
+  const ML = 70, MR = 16, MT = 14, MB = 34;
+  const iw = W - ML - MR, ih = H - MT - MB;
+
+  const allVals = [];
+  cfg.series.forEach(sr => sr.values.forEach(v => { if (v != null) allVals.push(v); }));
+  (cfg.bands || []).forEach(b => { allVals.push(...b.low.filter(v => v != null), ...b.high.filter(v => v != null)); });
+  if (cfg.includeZero) allVals.push(0);
+  let lo = Math.min(...allVals), hi = Math.max(...allVals);
+  // trava opcional do topo do eixo: meses iniciais têm taxa anualizada explosiva
+  // que esmagaria a escala; a linha é recortada e o tooltip mantém o valor real
+  if (cfg.yMax != null && hi > cfg.yMax) hi = cfg.yMax;
+  const pad = (hi - lo) * 0.08 || 1; lo -= pad; hi += pad;
+  const ticks = niceTicks(lo, hi, 5);
+  lo = Math.min(lo, ticks[0]); hi = Math.max(hi, ticks[ticks.length - 1]);
+
+  const x = m => ML + (m - MESES[0]) / (MESES[MESES.length - 1] - MESES[0]) * iw;
+  const y = v => MT + (hi - v) / (hi - lo) * ih;
+
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", cfg.aria);
+  const el = (tag, attrs, parent) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    (parent || svg).appendChild(e); return e;
+  };
+
+  // gridlines + y labels
+  for (const t of ticks) {
+    el("line", { x1: ML, x2: ML + iw, y1: y(t), y2: y(t), stroke: cssVar("--grid"), "stroke-width": 1 });
+    const lbl = el("text", { x: ML - 8, y: y(t) + 4, "text-anchor": "end", "font-size": 11, fill: cssVar("--text-muted"), style: "font-variant-numeric:tabular-nums" });
+    lbl.textContent = cfg.fmtTick(t);
+  }
+  // zero baseline stronger
+  if (cfg.includeZero && lo < 0 && hi > 0)
+    el("line", { x1: ML, x2: ML + iw, y1: y(0), y2: y(0), stroke: cssVar("--baseline"), "stroke-width": 1.5 });
+
+  // x ticks
+  for (const m of [6, 12, 18, 24, 30, 36]) {
+    const lbl = el("text", { x: x(m), y: H - 14, "text-anchor": "middle", "font-size": 11, fill: cssVar("--text-muted") });
+    lbl.textContent = m;
+    el("line", { x1: x(m), x2: x(m), y1: MT + ih, y2: MT + ih + 4, stroke: cssVar("--baseline"), "stroke-width": 1 });
+  }
+  const xTitle = el("text", { x: ML + iw / 2, y: H - 1, "text-anchor": "middle", "font-size": 11, fill: cssVar("--text-muted") });
+  xTitle.textContent = "meses até a venda";
+
+  // selected month marker
+  const selX = x(cfg.selected);
+  el("line", { x1: selX, x2: selX, y1: MT, y2: MT + ih, stroke: cssVar("--baseline"), "stroke-width": 1, "stroke-dasharray": "4 4" });
+
+  // grupo recortado à área do plot: linhas fora da escala saem pelo topo sem vazar
+  const defs = el("defs", {});
+  const clipId = boxId + "-clip";
+  const cp = el("clipPath", { id: clipId }, defs);
+  el("rect", { x: ML, y: MT - 1, width: iw, height: ih + 2 }, cp);
+  const plot = el("g", { "clip-path": "url(#" + clipId + ")" });
+
+  // bands
+  (cfg.bands || []).forEach(b => {
+    let d = "";
+    MESES.forEach((m, i) => { d += (i ? "L" : "M") + x(m) + " " + y(b.high[i]); });
+    for (let i = MESES.length - 1; i >= 0; i--) d += "L" + x(MESES[i]) + " " + y(b.low[i]);
+    el("path", { d: d + "Z", fill: cssVar(b.color), opacity: 0.16 }, plot);
+  });
+
+  // series lines
+  cfg.series.forEach(sr => {
+    let d = "";
+    MESES.forEach((m, i) => { if (sr.values[i] == null) return; d += (d ? "L" : "M") + x(m) + " " + y(sr.values[i]); });
+    el("path", { d, fill: "none", stroke: cssVar(sr.color), "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round" }, plot);
+    const vSel = sr.values[MESES.indexOf(cfg.selected)];
+    if (vSel != null) {
+      el("circle", { cx: selX, cy: y(vSel), r: 4.5, fill: cssVar(sr.color), stroke: cssVar("--surface-1"), "stroke-width": 2 }, plot);
+    }
+  });
+
+  box.appendChild(svg);
+
+  // tooltip + crosshair
+  const tt = document.createElement("div");
+  tt.className = "tooltip";
+  box.appendChild(tt);
+  const cross = el("line", { x1: 0, x2: 0, y1: MT, y2: MT + ih, stroke: cssVar("--text-muted"), "stroke-width": 1, opacity: 0 });
+
+  function showAt(clientX) {
+    const rect = svg.getBoundingClientRect();
+    const scale = W / rect.width;
+    const px = (clientX - rect.left) * scale;
+    let m = Math.round(MESES[0] + (px - ML) / iw * (MESES[MESES.length - 1] - MESES[0]));
+    m = Math.max(MESES[0], Math.min(36, m));
+    const i = MESES.indexOf(m);
+    cross.setAttribute("x1", x(m)); cross.setAttribute("x2", x(m));
+    cross.setAttribute("opacity", 0.6);
+    tt.textContent = "";
+    const head = document.createElement("div");
+    head.className = "tt-head";
+    head.textContent = m + (m === 1 ? " mês" : " meses") + " até a venda";
+    tt.appendChild(head);
+    cfg.tooltipRows(i, m).forEach(r => {
+      const row = document.createElement("div"); row.className = "tt-row";
+      const key = document.createElement("span"); key.className = "tt-key"; key.style.background = r.color ? cssVar(r.color) : "transparent";
+      const val = document.createElement("span"); val.className = "tt-val"; val.textContent = r.value;
+      const name = document.createElement("span"); name.className = "tt-name"; name.textContent = r.name;
+      row.append(key, val, name); tt.appendChild(row);
+    });
+    tt.style.display = "block";
+    const bw = box.clientWidth, tw = tt.offsetWidth;
+    let left = x(m) / scale + 14;
+    if (left + tw > bw - 4) left = x(m) / scale - tw - 14;
+    tt.style.left = Math.max(4, left) + "px";
+    tt.style.top = "18px";
+  }
+  svg.addEventListener("pointermove", e => showAt(e.clientX));
+  svg.addEventListener("pointerleave", () => { tt.style.display = "none"; cross.setAttribute("opacity", 0); });
+}
+
+/* ================= render ================= */
+let lastData = null;
+
+function recalc() {
+  const P = lerPremissas();
+  const { flip, s } = calcSeries(P);
+  lastData = { P, flip, s };
+  const T = P.prazo, i = MESES.indexOf(T);
+
+  // hints & warnings
+  $("hintNecessidade").textContent = "Necessidade da operação: " + fmtBRL(flip.custoOp) +
+    (P.C > flip.custoOp ? " (folga de " + fmtBRL(P.C - flip.custoOp) + ")" : "");
+  const warn = $("warnCapital");
+  if (P.C < flip.custoOp) {
+    warn.style.display = "block";
+    warn.textContent = "Atenção: capital menor que a necessidade da operação (" + fmtBRL(flip.custoOp) + ").";
+  } else warn.style.display = "none";
+
+  const cred = custoCredito(P, T);
+  if (P.modo === "cdi") {
+    const im = Math.pow(1 + P.cdi, 1 / 12) - 1 + P.spreadM;
+    $("hintCredito").textContent = "Taxa efetiva: " + fmtPct(im, 2) + " a.m. (" + fmtPct(Math.pow(1 + im, 12) - 1) + " a.a.) + IOF de 0,38% + 0,0082%/dia (máx. 365 dias).";
+  } else {
+    $("hintCredito").textContent = "Equivale a " + fmtPct(Math.pow(1 + P.preM, 12) - 1) + " a.a., já com IOF.";
+  }
+
+  // prazo output
+  const anos = T / 12;
+  $("outPrazo").innerHTML = T + " meses <small>(" +
+    anos.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + (anos >= 2 ? " anos" : " ano") + ")</small>";
+
+  // KPIs
+  const rSaqueMid = s.saqueMid[i], rSaqueMin = s.saqueMin[i], rSaqueMax = s.saqueMax[i], rCred = s.cred[i];
+  $("kpiFlip").textContent = fmtBRL(flip.flipLiq);
+  const kSaque = $("kpiSaque");
+  kSaque.textContent = fmtBRL(rSaqueMid);
+  kSaque.className = "k-value " + (rSaqueMid >= 0 ? "pos" : "neg");
+  $("kpiSaqueSub").textContent = "faixa " + fmtBRL(rSaqueMin) + " a " + fmtBRL(rSaqueMax) + " · custo de oportunidade " + fmtBRL(rendimentoLiquido(P, T, P.rMid));
+  const kCred = $("kpiCred");
+  kCred.textContent = fmtBRL(rCred);
+  kCred.className = "k-value " + (rCred >= 0 ? "pos" : "neg");
+  $("kpiCredSub").textContent = "juros " + fmtBRL(cred.juros) + (cred.iof ? " + IOF " + fmtBRL(cred.iof) : " (IOF incluso)");
+  const melhor = $("kpiMelhor"), melhorSub = $("kpiMelhorSub");
+  if (rSaqueMid < 0 && rCred < 0) {
+    melhor.textContent = "Manter aplicado";
+    melhorSub.textContent = "neste prazo, os dois caminhos rendem menos que a aplicação";
+  } else if (rCred > rSaqueMid) {
+    melhor.textContent = "Crédito";
+    melhorSub.textContent = "vantagem de " + fmtBRL(rCred - rSaqueMid) + " sobre o saque (rend. médio)";
+  } else {
+    melhor.textContent = "Saque";
+    melhorSub.textContent = "vantagem de " + fmtBRL(rSaqueMid - rCred) + " sobre o crédito (rend. médio)";
+  }
+
+  // breakdown
+  $("breakTitle").textContent = "Abertura dos números — venda no mês " + T;
+  const line = (label, val, cls = "") => {
+    const d = document.createElement("div"); d.className = "bl " + cls;
+    const l = document.createElement("span"); l.className = "bl-label"; l.textContent = label;
+    const v = document.createElement("span"); v.className = "bl-val"; v.textContent = val;
+    d.append(l, v); return d;
+  };
+  const bo = $("breakOp"); bo.textContent = "";
+  bo.append(
+    line("Venda (sua participação de " + fmtPct(P.p, 0) + ")", fmtBRL(flip.receita)),
+    line("Custo: aquisição + obra", "− " + fmtBRL(flip.custoOp)),
+    line("Ganho de capital", fmtBRL(flip.ganho)),
+    line("IR sobre o ganho (" + fmtPct(P.txGanho, 0) + ")", "− " + fmtBRL(flip.ir)),
+    line("Lucro do flip, líquido", fmtBRL(flip.flipLiq), "total")
+  );
+  const bc = $("breakCusto"); bc.textContent = "";
+  bc.append(
+    line("Saque · rendimento que deixa de ganhar (" + fmtPct(P.rMid, 1) + " a.a. médio" + (P.irReg ? ", líq. de IR" : "") + ")", "− " + fmtBRL(rendimentoLiquido(P, T, P.rMid))),
+    line("Saque · resultado além da aplicação", fmtBRL(rSaqueMid), "total"),
+    line("Crédito · juros no período", "− " + fmtBRL(cred.juros)),
+    line("Crédito · IOF", cred.iof ? "− " + fmtBRL(cred.iof) : "incluso na taxa"),
+    line("Crédito · resultado além da aplicação", fmtBRL(rCred), "total")
+  );
+
+  // table
+  const tbody = $("tbody"); tbody.textContent = "";
+  for (const m of [6, 9, 12, 18, 24, 30, 36]) {
+    const j = MESES.indexOf(m);
+    const tr = document.createElement("tr");
+    if (m === T) tr.className = "selected";
+    const anos2 = m / 12;
+    const cells = [
+      m + " m" + (m % 12 === 0 ? " (" + (m / 12) + (m === 12 ? " ano" : " anos") + ")" : ""),
+      fmtBRL(s.saqueMid[j]),
+      fmtBRL(s.cred[j]),
+      fmtBRL(s.cred[j] - s.saqueMid[j]),
+      s.tir[j] == null ? "—" : fmtPct(s.tir[j]),
+      fmtPct(s.aplicLo[j]) + " – " + fmtPct(s.aplicHi[j]),
+      (s.saqueMid[j] < 0 && s.cred[j] < 0) ? "Manter aplicado" : (s.cred[j] > s.saqueMid[j] ? "Crédito" : "Saque")
+    ];
+    cells.forEach((c, k) => {
+      const td = document.createElement("td");
+      if (k === 6) { const b = document.createElement("span"); b.className = "best"; b.textContent = c; td.appendChild(b); }
+      else td.textContent = c;
+      if ((k === 1 || k === 2) && Number(String(c).includes("−"))) td.className = "neg";
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  }
+  $("tableNote").textContent = "Resultados calculados com o rendimento médio da faixa (" + fmtPct(P.rMid, 1) +
+    " a.a.). “Operação (% a.a.)” é a taxa anualizada sobre o capital próprio de " + fmtBRL(P.C) + ".";
+
+  drawCharts();
+}
+
+function drawCharts() {
+  if (!lastData) return;
+  const { P, s } = lastData;
+  const i = m => MESES.indexOf(m);
+
+  drawChart("chart1", {
+    aria: "Resultado adicional de cada caminho por prazo de venda",
+    includeZero: true,
+    selected: P.prazo,
+    fmtTick: fmtMil,
+    bands: [{ low: s.saqueMin, high: s.saqueMax, color: "--series-saque" }],
+    series: [
+      { values: s.saqueMid, color: "--series-saque" },
+      { values: s.cred, color: "--series-credito" }
+    ],
+    tooltipRows: (j) => [
+      { color: "--series-saque", value: fmtBRL(s.saqueMid[j]), name: "Saque (rend. médio)" },
+      { color: "--series-saque", value: fmtBRL(s.saqueMin[j]) + " a " + fmtBRL(s.saqueMax[j]), name: "faixa " + fmtPct(P.rMin, 0) + "–" + fmtPct(P.rMax, 0) },
+      { color: "--series-credito", value: fmtBRL(s.cred[j]), name: "Crédito" }
+    ]
+  });
+
+  drawChart("chart2", {
+    aria: "Rentabilidade anualizada da operação por prazo de venda, comparada à faixa da aplicação",
+    includeZero: false,
+    selected: P.prazo,
+    yMax: 4 * Math.max(...s.aplicHi),
+    fmtTick: v => fmtPct(v, 0),
+    bands: [{ low: s.aplicLo, high: s.aplicHi, color: "--band-aplic" }],
+    series: [{ values: s.tir, color: "--series-saque" }],
+    tooltipRows: (j) => [
+      { color: "--series-saque", value: s.tir[j] == null ? "—" : fmtPct(s.tir[j]), name: "operação (a.a.)" },
+      { color: "--band-aplic", value: fmtPct(s.aplicLo[j]) + " – " + fmtPct(s.aplicHi[j]), name: "aplicação líq. (a.a.)" }
+    ]
+  });
+}
+
+/* re-render on resize & theme change */
+let rszT;
+window.addEventListener("resize", () => { clearTimeout(rszT); rszT = setTimeout(drawCharts, 120); });
+if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawCharts);
+
+recalc();
+</script>
+</body>
+</html>

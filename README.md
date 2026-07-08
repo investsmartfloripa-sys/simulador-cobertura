@@ -1,0 +1,39 @@
+# Simulador de Decisão — Compra da Cobertura (25%)
+
+Página interativa para apoiar a decisão de funding de uma operação de compra,
+reforma e revenda de imóvel (flip), com participação de 25%.
+
+**Acesse:** https://investsmartfloripa-sys.github.io/simulador-cobertura/
+
+## O que a página compara
+
+1. **Sacar as aplicações** — o rendimento que deixa de ser ganho (líquido de IR
+   regressivo) entra como custo de oportunidade.
+2. **Crédito colateralizado** — as aplicações continuam rendendo; os juros do
+   crédito (CDI + spread mensal + IOF, ou taxa prefixada mensal) entram como custo.
+3. **O efeito do prazo de venda** — como o preço de venda não corrige com o
+   tempo, cada mês a mais dilui a rentabilidade anualizada da operação. O segundo
+   gráfico mostra em que ponto a operação passa a render o mesmo que a aplicação.
+
+## Como usar
+
+Todos os campos são editáveis diretamente na página — valores do imóvel,
+participação, faixa de rendimento das aplicações, condições do crédito e
+impostos. O slider de prazo atualiza os cartões de resultado, os gráficos, a
+abertura dos números e a tabela.
+
+## Premissas do modelo
+
+- Aporte integral no mês zero.
+- Crédito pago integralmente na venda (bullet), com juros compostos mensais.
+- IOF (modalidade CDI + spread): 0,38% fixo + 0,0082% ao dia, limitado a 365 dias.
+- IR regressivo sobre o rendimento das aplicações: 22,5% / 20% / 17,5% / 15%
+  conforme o prazo (desligável).
+- IR de 15% sobre o ganho de capital do imóvel (editável).
+
+## Aviso
+
+Simulação educacional para apoio à decisão — **não constitui recomendação de
+investimento**. Custos de transação (ITBI, cartório, corretagem, condomínio e
+IPTU durante a obra) não estão incluídos e devem ser considerados nos campos de
+custo ou descontados do valor de venda.
