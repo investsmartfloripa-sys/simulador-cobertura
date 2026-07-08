@@ -8,7 +8,8 @@ reforma e revenda de imóvel (flip), com participação de 25%.
 ## O que a página compara
 
 1. **Sacar as aplicações** — o rendimento que deixa de ser ganho (líquido de IR
-   regressivo) entra como custo de oportunidade.
+   regressivo) entra como custo de oportunidade, mais um custo de resgate
+   configurável (padrão 1% do valor sacado — spread de saída e marcação a mercado).
 2. **Crédito colateralizado** — as aplicações continuam rendendo; os juros do
    crédito (CDI + spread mensal + IOF, ou taxa prefixada mensal) entram como custo.
 3. **O efeito do prazo de venda** — como o preço de venda não corrige com o

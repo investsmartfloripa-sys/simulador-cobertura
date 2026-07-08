@@ -190,7 +190,9 @@
           <input type="number" id="inRendMin" min="0" max="40" step="0.5" value="14"></div>
         <div class="field"><label for="inRendMax">Rendimento da aplicação — máximo (% a.a.)</label>
           <input type="number" id="inRendMax" min="0" max="40" step="0.5" value="18"></div>
-        <div class="hint">Prefixado. A faixa vira a banda sombreada nos gráficos.</div>
+        <div class="field"><label for="inResgate">Custo de resgate (% sobre o valor sacado)</label>
+          <input type="number" id="inResgate" min="0" max="10" step="0.1" value="1"></div>
+        <div class="hint">Prefixado. A faixa vira a banda sombreada nos gráficos. O custo de resgate cobre spread de saída e marcação a mercado ao vender antes do vencimento.</div>
       </fieldset>
 
       <fieldset>
@@ -349,7 +351,7 @@ const numVal = el => Number(el.value) || 0;
     recalc();
   });
 });
-["inPart", "inRendMin", "inRendMax", "inCDI", "inSpread", "inPre", "inIRGanho"].forEach(id =>
+["inPart", "inRendMin", "inRendMax", "inResgate", "inCDI", "inSpread", "inPre", "inIRGanho"].forEach(id =>
   $(id).addEventListener("input", recalc));
 $("inIRReg").addEventListener("change", recalc);
 $("inPrazo").addEventListener("input", recalc);
@@ -381,6 +383,7 @@ function lerPremissas() {
     p, aquis, obra, venda, C, rMin, rMax, rMid: (rMin + rMax) / 2,
     irReg: $("inIRReg").checked,
     txGanho: numVal($("inIRGanho")) / 100,
+    txResgate: numVal($("inResgate")) / 100,
     modo: $("inModo").value,
     cdi: numVal($("inCDI")) / 100,
     spreadM: numVal($("inSpread")) / 100,
@@ -431,12 +434,13 @@ const MESES = []; for (let m = 3; m <= 36; m++) MESES.push(m);
 
 function calcSeries(P) {
   const flip = calcFlip(P);
+  const resgate = P.C * P.txResgate;
   const s = { saqueMid: [], saqueMin: [], saqueMax: [], cred: [], tir: [], aplicLo: [], aplicHi: [] };
   for (const T of MESES) {
-    s.saqueMid.push(flip.flipLiq - rendimentoLiquido(P, T, P.rMid));
+    s.saqueMid.push(flip.flipLiq - rendimentoLiquido(P, T, P.rMid) - resgate);
     // rendimento maior => custo de oportunidade maior => resultado pior
-    s.saqueMin.push(flip.flipLiq - rendimentoLiquido(P, T, P.rMax));
-    s.saqueMax.push(flip.flipLiq - rendimentoLiquido(P, T, P.rMin));
+    s.saqueMin.push(flip.flipLiq - rendimentoLiquido(P, T, P.rMax) - resgate);
+    s.saqueMax.push(flip.flipLiq - rendimentoLiquido(P, T, P.rMin) - resgate);
     s.cred.push(flip.flipLiq - custoCredito(P, T).total);
     s.tir.push(tirOperacao(P, flip, T));
     s.aplicLo.push(aplicLiquidaAA(P, T, P.rMin));
@@ -617,7 +621,8 @@ function recalc() {
   const kSaque = $("kpiSaque");
   kSaque.textContent = fmtBRL(rSaqueMid);
   kSaque.className = "k-value " + (rSaqueMid >= 0 ? "pos" : "neg");
-  $("kpiSaqueSub").textContent = "faixa " + fmtBRL(rSaqueMin) + " a " + fmtBRL(rSaqueMax) + " · custo de oportunidade " + fmtBRL(rendimentoLiquido(P, T, P.rMid));
+  const resgate = P.C * P.txResgate;
+  $("kpiSaqueSub").textContent = "faixa " + fmtBRL(rSaqueMin) + " a " + fmtBRL(rSaqueMax) + " · custo de oportunidade " + fmtBRL(rendimentoLiquido(P, T, P.rMid)) + (resgate ? " + resgate " + fmtBRL(resgate) : "");
   const kCred = $("kpiCred");
   kCred.textContent = fmtBRL(rCred);
   kCred.className = "k-value " + (rCred >= 0 ? "pos" : "neg");
@@ -653,6 +658,7 @@ function recalc() {
   const bc = $("breakCusto"); bc.textContent = "";
   bc.append(
     line("Saque · rendimento que deixa de ganhar (" + fmtPct(P.rMid, 1) + " a.a. médio" + (P.irReg ? ", líq. de IR" : "") + ")", "− " + fmtBRL(rendimentoLiquido(P, T, P.rMid))),
+    line("Saque · custo de resgate (" + fmtPct(P.txResgate, 1) + " do valor sacado)", "− " + fmtBRL(resgate)),
     line("Saque · resultado além da aplicação", fmtBRL(rSaqueMid), "total"),
     line("Crédito · juros no período", "− " + fmtBRL(cred.juros)),
     line("Crédito · IOF", cred.iof ? "− " + fmtBRL(cred.iof) : "incluso na taxa"),
