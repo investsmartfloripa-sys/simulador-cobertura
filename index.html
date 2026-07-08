@@ -169,7 +169,7 @@
     <h2>Premissas — preencha com os seus números</h2>
     <div class="inputs-grid">
       <fieldset>
-        <legend>A operação (valores totais)</legend>
+        <legend>1 · A operação (valores totais)</legend>
         <div class="field"><label for="inAquisicao">Valor de aquisição (R$)</label>
           <input type="text" id="inAquisicao" inputmode="numeric" value="1.600.000"></div>
         <div class="field"><label for="inObra">Custo da obra (R$)</label>
@@ -178,46 +178,46 @@
           <input type="text" id="inVenda" inputmode="numeric" value="4.500.000"></div>
         <div class="field"><label for="inPart">Sua participação (%)</label>
           <input type="number" id="inPart" min="1" max="100" step="0.5" value="25"></div>
+        <div class="field"><label for="inIRGanho">IR sobre o ganho na venda (%)</label>
+          <input type="number" id="inIRGanho" min="0" max="35" step="0.5" value="15"></div>
       </fieldset>
 
       <fieldset>
-        <legend>Capital &amp; aplicações</legend>
-        <div class="field"><label for="inCapital">Capital a levantar (R$)</label>
+        <legend>2 · Capital a levantar</legend>
+        <div class="field"><label for="inCapital">Valor necessário (R$)</label>
           <input type="text" id="inCapital" inputmode="numeric" value="700.000">
           <div class="hint" id="hintNecessidade"></div>
           <div class="warn" id="warnCapital"></div></div>
-        <div class="field"><label for="inRendMin">Rendimento da aplicação — mínimo (% a.a.)</label>
-          <input type="number" id="inRendMin" min="0" max="40" step="0.5" value="14"></div>
-        <div class="field"><label for="inRendMax">Rendimento da aplicação — máximo (% a.a.)</label>
-          <input type="number" id="inRendMax" min="0" max="40" step="0.5" value="18"></div>
-        <div class="field"><label for="inResgate">Custo de resgate (% sobre o valor sacado)</label>
+        <div class="field"><label for="inResgate">Custo de resgate, se sacar (%)</label>
           <input type="number" id="inResgate" min="0" max="10" step="0.1" value="1"></div>
-        <div class="hint">Prefixado. A faixa vira a banda sombreada nos gráficos. O custo de resgate cobre spread de saída e marcação a mercado ao vender antes do vencimento.</div>
+        <div class="hint">O custo de resgate cobre o deságio de vender os títulos antes do vencimento (marcação a mercado + spread de saída).</div>
       </fieldset>
 
       <fieldset>
-        <legend>Crédito colateralizado</legend>
+        <legend>3 · Aplicações de hoje</legend>
+        <div class="field"><label for="inRendMin">Rendimento mínimo (% a.a.)</label>
+          <input type="number" id="inRendMin" min="0" max="40" step="0.5" value="14"></div>
+        <div class="field"><label for="inRendMax">Rendimento máximo (% a.a.)</label>
+          <input type="number" id="inRendMax" min="0" max="40" step="0.5" value="18"></div>
+        <label class="checkline"><input type="checkbox" id="inIsento" checked>
+          Isentas de IR (LCI, LCA, CRI, CRA…)</label>
+        <div class="hint">Prefixadas. A faixa mín.–máx. vira a banda sombreada no gráfico. Desmarque a isenção para aplicar a tabela regressiva de IR (22,5% → 15%).</div>
+      </fieldset>
+
+      <fieldset>
+        <legend>4 · Crédito colateralizado</legend>
         <div class="field"><label for="inModo">Modalidade</label>
           <select id="inModo">
             <option value="cdi">CDI + spread mensal (+ IOF)</option>
             <option value="pre">Prefixado % a.m. (IOF incluso)</option>
           </select></div>
         <div class="field" data-modo="cdi"><label for="inCDI">CDI esperado (% a.a.)</label>
-          <input type="number" id="inCDI" min="0" max="40" step="0.1" value="15.0"></div>
+          <input type="number" id="inCDI" min="0" max="40" step="0.1" value="14.0"></div>
         <div class="field" data-modo="cdi"><label for="inSpread">Spread (% ao mês)</label>
           <input type="number" id="inSpread" min="0" max="5" step="0.01" value="0.26"></div>
         <div class="field" data-modo="pre" style="display:none"><label for="inPre">Taxa prefixada (% ao mês)</label>
           <input type="number" id="inPre" min="0" max="10" step="0.05" value="1.5"></div>
         <div class="hint" id="hintCredito"></div>
-      </fieldset>
-
-      <fieldset>
-        <legend>Impostos</legend>
-        <div class="field"><label for="inIRGanho">IR sobre ganho de capital (%)</label>
-          <input type="number" id="inIRGanho" min="0" max="35" step="0.5" value="15"></div>
-        <label class="checkline"><input type="checkbox" id="inIRReg" checked>
-          IR regressivo sobre o rendimento da aplicação</label>
-        <div class="hint">22,5% até 6m · 20% até 1a · 17,5% até 2a · 15% acima. Aplicado automaticamente conforme o prazo.</div>
       </fieldset>
     </div>
   </section>
@@ -236,7 +236,7 @@
     <div class="kpi">
       <div class="k-label">Lucro do flip, líquido de IR</div>
       <div class="k-value" id="kpiFlip"></div>
-      <div class="k-sub">não depende do prazo — a venda não corrige com o tempo</div>
+      <div class="k-sub" id="kpiFlipSub"></div>
     </div>
     <div class="kpi">
       <div class="k-label"><span class="k-key" style="background:var(--series-saque)"></span>Caminho 1 · Sacar as aplicações</div>
@@ -258,23 +258,12 @@
   <!-- ============ CHART 1 ============ -->
   <section class="card">
     <div class="chart-title">Resultado de cada caminho, além de simplesmente manter o dinheiro aplicado</div>
-    <div class="chart-sub">Lucro do flip menos o custo do caminho escolhido (custo de oportunidade no saque; juros + IOF no crédito), pelo mês em que a venda acontecer. Acima de zero, a operação vale mais que deixar o capital rendendo.</div>
+    <div class="chart-sub">Lucro do flip menos o custo do caminho escolhido (custo de oportunidade + resgate no saque; juros + IOF no crédito), pelo mês em que a venda acontecer. Acima de zero, a operação vale mais que deixar o capital rendendo — e como o preço de venda não corrige com o tempo, cada mês a mais dilui o resultado. Passe o mouse (ou o dedo) sobre o gráfico para ver os valores e a rentabilidade anualizada de cada mês.</div>
     <div class="chart-box" id="chart1"></div>
     <div class="legend">
       <span class="lg"><span class="lg-key" style="background:var(--series-saque)"></span>Sacar as aplicações</span>
       <span class="lg"><span class="lg-band" style="background:var(--series-saque)"></span>Faixa conforme rendimento (mín.–máx.)</span>
       <span class="lg"><span class="lg-key" style="background:var(--series-credito)"></span>Crédito colateralizado</span>
-    </div>
-  </section>
-
-  <!-- ============ CHART 2 ============ -->
-  <section class="card">
-    <div class="chart-title">Rentabilidade anualizada da operação vs. deixar aplicado</div>
-    <div class="chart-sub">Como o preço de venda não aumenta com o tempo, cada mês a mais dilui o retorno anualizado. Quando a linha entra na faixa cinza, a operação passa a render o mesmo que a aplicação — e deixa de compensar o risco.</div>
-    <div class="chart-box" id="chart2"></div>
-    <div class="legend">
-      <span class="lg"><span class="lg-key" style="background:var(--series-saque)"></span>Operação (% a.a. sobre o capital próprio)</span>
-      <span class="lg"><span class="lg-band" style="background:var(--band-aplic)"></span>Aplicação, líquida de IR (faixa mín.–máx.)</span>
     </div>
   </section>
 
@@ -305,7 +294,7 @@
             <th>Resultado — Crédito</th>
             <th>Diferença (Crédito − Saque)</th>
             <th>Operação (% a.a.)</th>
-            <th>Aplicação líq. (% a.a.)</th>
+            <th>Aplicação (% a.a.)</th>
             <th>Melhor caminho</th>
           </tr>
         </thead>
@@ -320,7 +309,7 @@
     <h2>O que os números não mostram — leia antes de decidir</h2>
     <ul>
       <li><strong>Chamada de margem.</strong> No crédito colateralizado, se as aplicações dadas em garantia caírem de valor (prefixados marcados a mercado sofrem quando os juros sobem), a corretora pode exigir reforço de garantia ou liquidar posições no pior momento.</li>
-      <li><strong>IR antecipado no saque.</strong> Resgatar hoje antecipa o IR sobre os ganhos já acumulados na carteira e interrompe a contagem do prazo regressivo — um custo real que depende da data de cada aplicação e não está no modelo.</li>
+      <li><strong>Deságio no resgate antecipado.</strong> Títulos isentos (LCI, LCA, CRI, CRA, debêntures incentivadas) vendidos antes do vencimento saem pelo preço de mercado, não pela curva — o custo de resgate de 1% é uma estimativa; confirme o preço real de saída com a corretora antes de decidir.</li>
       <li><strong>Atraso e estouro de obra.</strong> O maior risco do flip não está nesta página: obra que atrasa empurra a venda para a direita nos gráficos, e estouro de orçamento aumenta o capital necessário. Teste cenários pessimistas nos campos acima.</li>
       <li><strong>Preço de venda é premissa, não garantia.</strong> Refaça a leitura com a venda 10–15% abaixo do esperado antes de decidir.</li>
       <li><strong>Custos de transação omitidos.</strong> ITBI, cartório, corretagem na venda (tipicamente 5–6%) e condomínio/IPTU durante a obra reduzem o ganho. Inclua-os no custo da obra ou desconte do valor de venda.</li>
@@ -353,7 +342,7 @@ const numVal = el => Number(el.value) || 0;
 });
 ["inPart", "inRendMin", "inRendMax", "inResgate", "inCDI", "inSpread", "inPre", "inIRGanho"].forEach(id =>
   $(id).addEventListener("input", recalc));
-$("inIRReg").addEventListener("change", recalc);
+$("inIsento").addEventListener("change", recalc);
 $("inPrazo").addEventListener("input", recalc);
 $("inModo").addEventListener("change", () => {
   const modo = $("inModo").value;
@@ -381,7 +370,7 @@ function lerPremissas() {
   if (rMin > rMax) [rMin, rMax] = [rMax, rMin];
   return {
     p, aquis, obra, venda, C, rMin, rMax, rMid: (rMin + rMax) / 2,
-    irReg: $("inIRReg").checked,
+    isento: $("inIsento").checked,
     txGanho: numVal($("inIRGanho")) / 100,
     txResgate: numVal($("inResgate")) / 100,
     modo: $("inModo").value,
@@ -402,7 +391,7 @@ function calcFlip(P) {
 
 function rendimentoLiquido(P, T, r) {
   const bruto = P.C * (Math.pow(1 + r, T / 12) - 1);
-  return P.irReg ? bruto * (1 - aliquotaRegressiva(T)) : bruto;
+  return P.isento ? bruto : bruto * (1 - aliquotaRegressiva(T));
 }
 
 function custoCredito(P, T) {
@@ -426,7 +415,7 @@ function tirOperacao(P, flip, T) {
 
 /* aplicação líquida de IR, anualizada para o prazo T */
 function aplicLiquidaAA(P, T, r) {
-  const fatorLiq = 1 + (Math.pow(1 + r, T / 12) - 1) * (P.irReg ? 1 - aliquotaRegressiva(T) : 1);
+  const fatorLiq = 1 + (Math.pow(1 + r, T / 12) - 1) * (P.isento ? 1 : 1 - aliquotaRegressiva(T));
   return Math.pow(fatorLiq, 12 / T) - 1;
 }
 
@@ -502,8 +491,13 @@ function drawChart(boxId, cfg) {
     lbl.textContent = cfg.fmtTick(t);
   }
   // zero baseline stronger
-  if (cfg.includeZero && lo < 0 && hi > 0)
+  if (cfg.includeZero && lo < 0 && hi > 0) {
     el("line", { x1: ML, x2: ML + iw, y1: y(0), y2: y(0), stroke: cssVar("--baseline"), "stroke-width": 1.5 });
+    if (cfg.zeroLabel) {
+      const zl = el("text", { x: ML + 6, y: y(0) + 14, "text-anchor": "start", "font-size": 10, fill: cssVar("--text-muted") });
+      zl.textContent = cfg.zeroLabel;
+    }
+  }
 
   // x ticks
   for (const m of [6, 12, 18, 24, 30, 36]) {
@@ -618,6 +612,9 @@ function recalc() {
   // KPIs
   const rSaqueMid = s.saqueMid[i], rSaqueMin = s.saqueMin[i], rSaqueMax = s.saqueMax[i], rCred = s.cred[i];
   $("kpiFlip").textContent = fmtBRL(flip.flipLiq);
+  $("kpiFlipSub").textContent = s.tir[i] == null
+    ? "a venda não corrige com o tempo"
+    : "vendendo no mês " + T + ", equivale a " + fmtPct(s.tir[i]) + " a.a. — a venda não corrige com o tempo";
   const kSaque = $("kpiSaque");
   kSaque.textContent = fmtBRL(rSaqueMid);
   kSaque.className = "k-value " + (rSaqueMid >= 0 ? "pos" : "neg");
@@ -657,7 +654,7 @@ function recalc() {
   );
   const bc = $("breakCusto"); bc.textContent = "";
   bc.append(
-    line("Saque · rendimento que deixa de ganhar (" + fmtPct(P.rMid, 1) + " a.a. médio" + (P.irReg ? ", líq. de IR" : "") + ")", "− " + fmtBRL(rendimentoLiquido(P, T, P.rMid))),
+    line("Saque · rendimento que deixa de ganhar (" + fmtPct(P.rMid, 1) + " a.a. médio" + (P.isento ? ", isento de IR" : ", líq. de IR") + ")", "− " + fmtBRL(rendimentoLiquido(P, T, P.rMid))),
     line("Saque · custo de resgate (" + fmtPct(P.txResgate, 1) + " do valor sacado)", "− " + fmtBRL(resgate)),
     line("Saque · resultado além da aplicação", fmtBRL(rSaqueMid), "total"),
     line("Crédito · juros no período", "− " + fmtBRL(cred.juros)),
@@ -691,7 +688,8 @@ function recalc() {
     tbody.appendChild(tr);
   }
   $("tableNote").textContent = "Resultados calculados com o rendimento médio da faixa (" + fmtPct(P.rMid, 1) +
-    " a.a.). “Operação (% a.a.)” é a taxa anualizada sobre o capital próprio de " + fmtBRL(P.C) + ".";
+    " a.a.). “Operação (% a.a.)” é a taxa anualizada sobre o capital próprio de " + fmtBRL(P.C) + "." +
+    (P.isento ? " Aplicações isentas de IR." : " Rendimento da aplicação líquido de IR regressivo.");
 
   drawCharts();
 }
@@ -699,11 +697,11 @@ function recalc() {
 function drawCharts() {
   if (!lastData) return;
   const { P, s } = lastData;
-  const i = m => MESES.indexOf(m);
 
   drawChart("chart1", {
     aria: "Resultado adicional de cada caminho por prazo de venda",
     includeZero: true,
+    zeroLabel: "abaixo desta linha, manter aplicado rende mais",
     selected: P.prazo,
     fmtTick: fmtMil,
     bands: [{ low: s.saqueMin, high: s.saqueMax, color: "--series-saque" }],
@@ -714,21 +712,9 @@ function drawCharts() {
     tooltipRows: (j) => [
       { color: "--series-saque", value: fmtBRL(s.saqueMid[j]), name: "Saque (rend. médio)" },
       { color: "--series-saque", value: fmtBRL(s.saqueMin[j]) + " a " + fmtBRL(s.saqueMax[j]), name: "faixa " + fmtPct(P.rMin, 0) + "–" + fmtPct(P.rMax, 0) },
-      { color: "--series-credito", value: fmtBRL(s.cred[j]), name: "Crédito" }
-    ]
-  });
-
-  drawChart("chart2", {
-    aria: "Rentabilidade anualizada da operação por prazo de venda, comparada à faixa da aplicação",
-    includeZero: false,
-    selected: P.prazo,
-    yMax: 4 * Math.max(...s.aplicHi),
-    fmtTick: v => fmtPct(v, 0),
-    bands: [{ low: s.aplicLo, high: s.aplicHi, color: "--band-aplic" }],
-    series: [{ values: s.tir, color: "--series-saque" }],
-    tooltipRows: (j) => [
-      { color: "--series-saque", value: s.tir[j] == null ? "—" : fmtPct(s.tir[j]), name: "operação (a.a.)" },
-      { color: "--band-aplic", value: fmtPct(s.aplicLo[j]) + " – " + fmtPct(s.aplicHi[j]), name: "aplicação líq. (a.a.)" }
+      { color: "--series-credito", value: fmtBRL(s.cred[j]), name: "Crédito" },
+      { value: s.tir[j] == null ? "—" : fmtPct(s.tir[j]) + " a.a.", name: "rentabilidade da operação" },
+      { value: fmtPct(s.aplicLo[j]) + " – " + fmtPct(s.aplicHi[j]) + " a.a.", name: "aplicação no período" }
     ]
   });
 }

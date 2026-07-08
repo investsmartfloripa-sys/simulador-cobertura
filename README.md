@@ -13,8 +13,9 @@ reforma e revenda de imóvel (flip), com participação de 25%.
 2. **Crédito colateralizado** — as aplicações continuam rendendo; os juros do
    crédito (CDI + spread mensal + IOF, ou taxa prefixada mensal) entram como custo.
 3. **O efeito do prazo de venda** — como o preço de venda não corrige com o
-   tempo, cada mês a mais dilui a rentabilidade anualizada da operação. O segundo
-   gráfico mostra em que ponto a operação passa a render o mesmo que a aplicação.
+   tempo, cada mês a mais dilui a rentabilidade anualizada da operação. O tooltip
+   do gráfico, o cartão do flip e a tabela mostram a taxa anualizada em cada
+   prazo, lado a lado com o que a aplicação renderia.
 
 ## Como usar
 
@@ -28,8 +29,8 @@ abertura dos números e a tabela.
 - Aporte integral no mês zero.
 - Crédito pago integralmente na venda (bullet), com juros compostos mensais.
 - IOF (modalidade CDI + spread): 0,38% fixo + 0,0082% ao dia, limitado a 365 dias.
-- IR regressivo sobre o rendimento das aplicações: 22,5% / 20% / 17,5% / 15%
-  conforme o prazo (desligável).
+- Aplicações isentas de IR por padrão (LCI, LCA, CRI, CRA, debêntures
+  incentivadas); opcionalmente aplica-se a tabela regressiva (22,5% → 15%).
 - IR de 15% sobre o ganho de capital do imóvel (editável).
 
 ## Aviso
