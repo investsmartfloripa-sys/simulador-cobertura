@@ -143,7 +143,6 @@
   th:first-child, td:first-child { text-align: left; }
   td { padding: 8px 10px; border-bottom: 1px solid var(--grid); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   tr.selected td { background: color-mix(in srgb, var(--series-saque) 8%, transparent); font-weight: 600; }
-  td .best { font-weight: 700; }
 
   /* ---------- notes ---------- */
   .notes { font-size: 0.8rem; color: var(--text-secondary); }
@@ -249,9 +248,9 @@
       <div class="k-sub" id="kpiCredSub"></div>
     </div>
     <div class="kpi">
-      <div class="k-label">Melhor caminho neste prazo</div>
-      <div class="k-value" id="kpiMelhor"></div>
-      <div class="k-sub" id="kpiMelhorSub"></div>
+      <div class="k-label">Diferença · Crédito − Saque</div>
+      <div class="k-value" id="kpiDif"></div>
+      <div class="k-sub" id="kpiDifSub"></div>
     </div>
   </div>
 
@@ -295,7 +294,6 @@
             <th>Diferença (Crédito − Saque)</th>
             <th>Operação (% a.a.)</th>
             <th>Aplicação (% a.a.)</th>
-            <th>Melhor caminho</th>
           </tr>
         </thead>
         <tbody id="tbody"></tbody>
@@ -624,17 +622,11 @@ function recalc() {
   kCred.textContent = fmtBRL(rCred);
   kCred.className = "k-value " + (rCred >= 0 ? "pos" : "neg");
   $("kpiCredSub").textContent = "juros " + fmtBRL(cred.juros) + (cred.iof ? " + IOF " + fmtBRL(cred.iof) : " (IOF incluso)");
-  const melhor = $("kpiMelhor"), melhorSub = $("kpiMelhorSub");
-  if (rSaqueMid < 0 && rCred < 0) {
-    melhor.textContent = "Manter aplicado";
-    melhorSub.textContent = "neste prazo, os dois caminhos rendem menos que a aplicação";
-  } else if (rCred > rSaqueMid) {
-    melhor.textContent = "Crédito";
-    melhorSub.textContent = "vantagem de " + fmtBRL(rCred - rSaqueMid) + " sobre o saque (rend. médio)";
-  } else {
-    melhor.textContent = "Saque";
-    melhorSub.textContent = "vantagem de " + fmtBRL(rSaqueMid - rCred) + " sobre o crédito (rend. médio)";
-  }
+  const dif = rCred - rSaqueMid;
+  $("kpiDif").textContent = fmtBRL(dif);
+  $("kpiDifSub").textContent = (dif >= 0
+    ? "o crédito sai " + fmtBRL(dif) + " na frente do saque"
+    : "sacar sai " + fmtBRL(-dif) + " na frente do crédito") + " (rend. médio de " + fmtPct(P.rMid, 1) + " a.a.)";
 
   // breakdown
   $("breakTitle").textContent = "Abertura dos números — venda no mês " + T;
@@ -675,14 +667,12 @@ function recalc() {
       fmtBRL(s.cred[j]),
       fmtBRL(s.cred[j] - s.saqueMid[j]),
       s.tir[j] == null ? "—" : fmtPct(s.tir[j]),
-      fmtPct(s.aplicLo[j]) + " – " + fmtPct(s.aplicHi[j]),
-      (s.saqueMid[j] < 0 && s.cred[j] < 0) ? "Manter aplicado" : (s.cred[j] > s.saqueMid[j] ? "Crédito" : "Saque")
+      fmtPct(s.aplicLo[j]) + " – " + fmtPct(s.aplicHi[j])
     ];
     cells.forEach((c, k) => {
       const td = document.createElement("td");
-      if (k === 6) { const b = document.createElement("span"); b.className = "best"; b.textContent = c; td.appendChild(b); }
-      else td.textContent = c;
-      if ((k === 1 || k === 2) && Number(String(c).includes("−"))) td.className = "neg";
+      td.textContent = c;
+      if ((k === 1 || k === 2) && String(c).includes("−")) td.className = "neg";
       tr.appendChild(td);
     });
     tbody.appendChild(tr);
