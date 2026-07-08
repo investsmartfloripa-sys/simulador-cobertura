@@ -21,9 +21,22 @@ reforma e revenda de imóvel (flip), com participação de 25%.
 ## Como usar
 
 Todos os campos são editáveis diretamente na página — valores do imóvel,
-participação, faixa de rendimento das aplicações, condições do crédito e
-impostos. O slider de prazo atualiza os cartões de resultado, os gráficos, a
+participação, faixa de retorno das aplicações, condições do crédito e
+impostos. O slider de prazo atualiza os cartões de resultado, o gráfico, a
 abertura dos números e a tabela.
+
+O gráfico tem **duas leituras**, alternáveis no seletor do próprio cartão:
+
+- **vs. manter aplicado** — resultado de cada caminho além de simplesmente
+  deixar o capital rendendo (a faixa de incerteza fica no saque, cujo custo de
+  oportunidade depende do retorno dos FIIs).
+- **Lucro absoluto** — reais no bolso em cada caminho: o saque trava o lucro do
+  flip no dia do resgate; o crédito soma o retorno dos FIIs mantidos na carteira
+  e desconta juros + IOF (a faixa de incerteza muda para o crédito). Inclui a
+  linha de referência de não fazer a operação.
+
+A diferença entre crédito e saque é idêntica nas duas leituras — o que muda é o
+ponto de referência.
 
 ## Premissas do modelo
 
