@@ -236,6 +236,8 @@
           <input type="text" id="inAquisicao" inputmode="numeric" value="1.600.000"></div>
         <div class="field"><label for="inObra">Custo da obra (R$)</label>
           <input type="text" id="inObra" inputmode="numeric" value="990.000"></div>
+        <div class="field"><label for="inImpostos">Impostos e outros custos (R$)</label>
+          <input type="text" id="inImpostos" inputmode="numeric" value="210.000"></div>
         <div class="field"><label for="inVenda">Valor de venda esperado (R$)</label>
           <input type="text" id="inVenda" inputmode="numeric" value="4.500.000"></div>
         <div class="field"><label for="inPart">Sua participação (%)</label>
@@ -402,7 +404,7 @@
       <li><strong>Preço de saída e de recompra.</strong> Vender FIIs e títulos isentos hoje sai pelo preço de mercado (o custo de resgate de 1% é uma estimativa), e remontar a carteira depois pode custar mais caro se as cotas tiverem subido — esse retorno perdido é exatamente o que a faixa amarela dos gráficos mede. Confirme os preços reais de saída com a corretora.</li>
       <li><strong>Atraso e estouro de obra.</strong> O maior risco do flip não está nesta página: obra que atrasa empurra a venda para a direita nos gráficos, e estouro de orçamento aumenta o capital necessário. Teste cenários pessimistas nos campos acima.</li>
       <li><strong>Preço de venda é premissa, não garantia.</strong> Refaça a leitura com a venda 10–15% abaixo do esperado antes de decidir.</li>
-      <li><strong>Custos de transação omitidos.</strong> ITBI, cartório, corretagem na venda (tipicamente 5–6%) e condomínio/IPTU durante a obra reduzem o ganho. Inclua-os no custo da obra ou desconte do valor de venda.</li>
+      <li><strong>Custos de saída ainda de fora.</strong> ITBI, cartório e afins da compra já entram no campo “Impostos e outros custos”; mas a corretagem na venda (tipicamente 5–6%) e condomínio/IPTU durante a obra não estão no modelo — desconte-os do valor de venda esperado.</li>
     </ul>
   </section>
 
@@ -422,7 +424,7 @@ const fmtPct = (v, d = 1) => (v * 100).toLocaleString("pt-BR", { minimumFraction
 const moneyVal = el => Number(el.value.replace(/\D/g, "")) || 0;
 const numVal = el => Number(el.value) || 0;
 
-["inAquisicao", "inObra", "inVenda", "inCapital"].forEach(id => {
+["inAquisicao", "inObra", "inImpostos", "inVenda", "inCapital"].forEach(id => {
   const el = $(id);
   el.addEventListener("input", () => {
     const d = el.value.replace(/\D/g, "");
@@ -470,6 +472,7 @@ function lerPremissas() {
   const p = numVal($("inPart")) / 100;
   const aquis = moneyVal($("inAquisicao"));
   const obra = moneyVal($("inObra"));
+  const impostos = moneyVal($("inImpostos"));
   const venda = moneyVal($("inVenda"));
   const C = moneyVal($("inCapital"));
   let rMin = numVal($("inRendMin")) / 100, rMax = numVal($("inRendMax")) / 100;
@@ -477,7 +480,7 @@ function lerPremissas() {
   const rSel = retCen === "min" ? rMin : retCen === "max" ? rMax : (rMin + rMax) / 2;
   const cenLabel = retCen === "min" ? "mínimo" : retCen === "max" ? "máximo" : "médio";
   return {
-    p, aquis, obra, venda, C, rMin, rMax, rSel, cenLabel,
+    p, aquis, obra, impostos, venda, C, rMin, rMax, rSel, cenLabel,
     isento: $("inIsento").checked,
     txGanho: numVal($("inIRGanho")) / 100,
     txResgate: numVal($("inResgate")) / 100,
@@ -490,11 +493,15 @@ function lerPremissas() {
 }
 
 function calcFlip(P) {
-  const custoOp = P.p * (P.aquis + P.obra);
+  // impostos e custos de transação da compra integram o custo da operação
+  // e a base de custo para o IR sobre o ganho
+  const custoBase = P.p * (P.aquis + P.obra);
+  const custoImpostos = P.p * P.impostos;
+  const custoOp = custoBase + custoImpostos;
   const receita = P.p * P.venda;
   const ganho = receita - custoOp;
   const ir = Math.max(0, ganho) * P.txGanho;
-  return { custoOp, receita, ganho, ir, flipLiq: ganho - ir };
+  return { custoOp, custoBase, custoImpostos, receita, ganho, ir, flipLiq: ganho - ir };
 }
 
 function rendimentoLiquido(P, T, r) {
@@ -890,7 +897,8 @@ function recalc() {
   const bo = $("breakOp"); bo.textContent = "";
   bo.append(
     line("Venda (sua participação de " + fmtPct(P.p, 0) + ")", fmtBRL(flip.receita)),
-    line("Custo: aquisição + obra", "− " + fmtBRL(flip.custoOp)),
+    line("Custo: aquisição + obra", "− " + fmtBRL(flip.custoBase)),
+    line("Impostos e outros custos", "− " + fmtBRL(flip.custoImpostos)),
     line("Ganho de capital", fmtBRL(flip.ganho)),
     line("IR sobre o ganho (" + fmtPct(P.txGanho, 0) + ")", "− " + fmtBRL(flip.ir)),
     line("Lucro do flip, líquido", fmtBRL(flip.flipLiq), "total")

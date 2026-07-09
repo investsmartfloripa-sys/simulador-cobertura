@@ -54,11 +54,13 @@ números, e a **tabela alterna** entre as leituras relativa e absoluta.
 - IOF (modalidade CDI + spread): 0,38% fixo + 0,0082% ao dia, limitado a 365 dias.
 - Aplicações isentas de IR por padrão (LCI, LCA, CRI, CRA, debêntures
   incentivadas); opcionalmente aplica-se a tabela regressiva (22,5% → 15%).
+- Impostos e custos de transação da compra (ITBI, cartório etc.) têm campo
+  próprio, integram o custo total da operação e a base de custo do IR.
 - IR de 15% sobre o ganho de capital do imóvel (editável).
 
 ## Aviso
 
 Simulação educacional para apoio à decisão — **não constitui recomendação de
-investimento**. Custos de transação (ITBI, cartório, corretagem, condomínio e
-IPTU durante a obra) não estão incluídos e devem ser considerados nos campos de
-custo ou descontados do valor de venda.
+investimento**. Corretagem na venda e condomínio/IPTU durante a obra não estão
+incluídos — desconte-os do valor de venda esperado ou some-os aos campos de
+custo.
