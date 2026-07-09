@@ -197,9 +197,15 @@
   .bl.total .bl-label { color: var(--text-primary); font-weight: 600; }
 
   /* ---------- table ---------- */
-  .table-scroll { overflow-x: auto; }
+  .table-scroll { overflow: auto; max-height: 480px; }
   table { width: 100%; border-collapse: collapse; font-size: 0.83rem; min-width: 740px; }
-  th { text-align: right; font-weight: 700; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); padding: 8px 10px; border-bottom: 2px solid var(--baseline); white-space: nowrap; }
+  th {
+    text-align: right; font-weight: 700; font-size: 0.7rem; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--text-muted); padding: 8px 10px; white-space: nowrap;
+    position: sticky; top: 0; z-index: 1; background: var(--surface-1);
+    box-shadow: inset 0 -2px 0 var(--baseline);
+  }
+  tr.year td { border-bottom: 2px solid var(--baseline); }
   tbody tr:not(.selected):hover td { background: color-mix(in srgb, var(--text-primary) 3%, transparent); }
   th:first-child, td:first-child { text-align: left; }
   td { padding: 8px 10px; border-bottom: 1px solid var(--grid); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -923,10 +929,11 @@ function recalc() {
   ).forEach(t => { const e = document.createElement("th"); e.textContent = t; hr.appendChild(e); });
   const pctOu = v => v == null ? "—" : fmtPct(v);
   const tbody = $("tbody"); tbody.textContent = "";
-  for (const m of [6, 9, 12, 18, 24, 30, 36]) {
+  for (const m of MESES) {
     const j = MESES.indexOf(m);
     const tr = document.createElement("tr");
-    if (m === T) tr.className = "selected";
+    if (m === T) tr.classList.add("selected");
+    if (m % 12 === 0) tr.classList.add("year");
     const prazoLbl = m + " m" + (m % 12 === 0 ? " (" + (m / 12) + (m === 12 ? " ano" : " anos") + ")" : "");
     let cells, negIdx;
     if (tableView === "rel") {
