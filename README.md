@@ -31,11 +31,12 @@ São **dois gráficos**, um para cada leitura:
   deixar o capital rendendo (a faixa amarela de incerteza fica no saque, cujo
   custo de oportunidade depende do retorno dos FIIs).
 - **Lucro absoluto** — colunas empilhadas nos prazos-chave (6 a 36 meses, mais
-  o prazo do slider, destacado): acima do zero o que entra (lucro do flip; no
-  crédito, também o retorno dos FIIs mantidos), abaixo do zero o que sai
-  (resgate; juros e IOF). O traço escuro marca o resultado líquido de cada
-  coluna, o fio vertical mostra o resultado do crédito com FIIs do mínimo ao
-  máximo, e a linha tracejada é a referência de não fazer a operação.
+  o prazo do slider, destacado), com uma cor por componente: ganho da operação
+  (violeta), retorno da carteira de FIIs (amarelo) e custos — juros, IOF e
+  resgate — em vermelho, subtraindo abaixo do zero. O traço escuro marca o
+  resultado líquido de cada coluna, o fio vertical mostra o resultado do
+  crédito com FIIs do mínimo ao máximo, e a tracejada amarela é a referência
+  de manter aplicado.
 
 A incerteza representada é sempre a mesma — o retorno dos FIIs entre o mínimo
 e o máximo (faixa amarela no primeiro gráfico, fio vertical no segundo) — e a

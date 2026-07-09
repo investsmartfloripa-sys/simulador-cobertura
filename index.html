@@ -22,6 +22,8 @@
     --good: #006300;
     --bad: #d03b3b;
     --band-aplic: #898781;
+    --comp-flip: #4a3aa7;
+    --comp-custo: #e34948;
     --tooltip-bg: #ffffff;
     --shadow: 0 1px 2px rgba(11,11,11,0.04), 0 12px 32px -18px rgba(11,11,11,0.12);
   }
@@ -41,6 +43,8 @@
       --good: #0ca30c;
       --bad: #e66767;
       --band-aplic: #898781;
+      --comp-flip: #9085e9;
+      --comp-custo: #e66767;
       --tooltip-bg: #242423;
       --shadow: 0 1px 2px rgba(0,0,0,0.35), 0 12px 32px -18px rgba(0,0,0,0.55);
     }
@@ -176,9 +180,9 @@
   .legend .lg-key { width: 14px; height: 3px; border-radius: 2px; }
   .legend .lg-band { width: 14px; height: 10px; border-radius: 2px; opacity: 0.25; }
   .legend .lg-tick { width: 14px; height: 3px; border-radius: 2px; background: var(--text-primary); }
-  .legend .lg-dash { width: 16px; border-top: 2px dashed var(--band-aplic); }
+  .legend .lg-dash { width: 16px; border-top: 2px dashed var(--band-ret); }
   .legend .lg-whisk { width: 2px; height: 12px; background: var(--text-primary); opacity: 0.55; }
-  .legend .lg-block { width: 12px; height: 12px; border-radius: 3px; background: var(--series-credito); flex: none; }
+  .legend .lg-block { width: 12px; height: 12px; border-radius: 3px; flex: none; }
   .tooltip .tt-row.net { border-top: 1px solid var(--grid); margin-top: 4px; padding-top: 4px; }
 
   /* ---------- breakdown ---------- */
@@ -345,16 +349,14 @@
     <div class="chart-sub">Cada coluna empilha o que compõe o resultado no mês da venda: acima do zero, o que entra (lucro do flip; no crédito, também o retorno dos FIIs que continuam na carteira); abaixo do zero, o que sai (custo de resgate no saque; juros e IOF no crédito). O traço escuro marca o resultado líquido de cada coluna. Passe o mouse sobre uma coluna para ver a conta completa.</div>
     <div class="chart-box" id="chartAbs"></div>
     <div class="legend">
-      <span class="lg"><span class="lg-key" style="background:var(--series-saque); height:10px; border-radius:3px"></span>Saque</span>
-      <span class="lg"><span class="lg-key" style="background:var(--series-credito); height:10px; border-radius:3px"></span>Crédito</span>
-      <span class="lg"><span class="lg-block"></span>Bloco cheio: ganho da operação</span>
-      <span class="lg"><span class="lg-block" style="opacity:0.5"></span>Bloco claro: retorno dos FIIs</span>
-      <span class="lg"><span class="lg-block" style="opacity:0.32"></span>Abaixo do zero: juros + IOF · resgate</span>
+      <span class="lg"><span class="lg-block" style="background:var(--comp-flip)"></span>Ganho da operação (flip)</span>
+      <span class="lg"><span class="lg-block" style="background:var(--band-ret)"></span>Retorno da carteira (FIIs)</span>
+      <span class="lg"><span class="lg-block" style="background:var(--comp-custo)"></span>Custos: juros + IOF · resgate</span>
       <span class="lg"><span class="lg-tick"></span>Resultado líquido</span>
       <span class="lg"><span class="lg-dash"></span>Manter aplicado (referência)</span>
       <span class="lg"><span class="lg-whisk"></span>Crédito com FIIs do mín. ao máx.</span>
     </div>
-    <div class="hint" style="margin-top:8px">Lendo cada coluna: no <strong>saque</strong>, o ganho da operação menos o custo de resgate — a coluna não muda com o prazo, o lucro é travado no dia do resgate. No <strong>crédito</strong>, ganho da operação + retorno dos FIIs (bloco claro) − juros e IOF (abaixo do zero) = traço escuro. O fio vertical mostra onde o líquido do crédito cairia com FIIs do mínimo ao máximo. A conta armada do prazo selecionado está logo abaixo, na abertura dos números.</div>
+    <div class="hint" style="margin-top:8px">Em cada par, <strong>Saque</strong> à esquerda e <strong>Crédito</strong> à direita. No saque, só o ganho da operação, menos o custo de resgate — a coluna não muda com o prazo. No crédito, ganho da operação + retorno da carteira − juros e IOF (em vermelho, subtraindo abaixo do zero) = traço escuro. A tracejada amarela é a carteira sozinha (manter aplicado); o fio vertical, o líquido do crédito com FIIs do mínimo ao máximo. A conta armada do prazo selecionado está logo abaixo, na abertura dos números.</div>
   </section>
 
   <!-- ============ BREAKDOWN ============ -->
@@ -762,7 +764,7 @@ function drawColumnChart(boxId, cfg) {
     const xl = el("text", { x: cx, y: H - 14, "text-anchor": "middle", "font-size": 11, fill: g.selected ? cssVar("--text-primary") : cssVar("--text-muted"), "font-weight": g.selected ? 700 : 400 });
     xl.textContent = g.label;
     if (g.ref != null)
-      el("line", { x1: gx + gw * 0.12, x2: gx + gw * 0.88, y1: y(g.ref), y2: y(g.ref), stroke: cssVar("--band-aplic"), "stroke-width": 1.5, "stroke-dasharray": "4 3", "pointer-events": "none" });
+      el("line", { x1: gx + gw * 0.12, x2: gx + gw * 0.88, y1: y(g.ref), y2: y(g.ref), stroke: cssVar("--band-ret"), "stroke-width": 1.5, "stroke-dasharray": "4 3", "pointer-events": "none" });
 
     const totW = g.cols.length * colW + (g.cols.length - 1) * colGap;
     g.cols.forEach((c, ci) => {
@@ -773,8 +775,12 @@ function drawColumnChart(boxId, cfg) {
         let yTopo, yBase;
         if (p.value > 0) { yTopo = y(up + p.value); yBase = y(up); up += p.value; }
         else { yTopo = y(dn); yBase = y(dn + p.value); dn += p.value; }
-        el("rect", { x: x0, y: yTopo + 1, width: colW, height: Math.max(0, yBase - yTopo - 2), fill: cssVar(c.color), opacity: p.op, rx: 2 });
+        el("rect", { x: x0, y: yTopo + 1, width: colW, height: Math.max(0, yBase - yTopo - 2), fill: cssVar(p.color), rx: 2 });
       });
+      if (gi === 0) {
+        const nm = el("text", { x: x0 + colW / 2, y: y(up) - 8, "text-anchor": "middle", "font-size": 10, "font-weight": 600, fill: cssVar("--text-secondary") });
+        nm.textContent = c.name;
+      }
       if (c.whisker) {
         const wx = x0 + colW / 2;
         el("line", { x1: wx, x2: wx, y1: y(c.whisker.hi), y2: y(c.whisker.lo), stroke: cssVar("--text-primary"), "stroke-width": 1.5, opacity: 0.55, "pointer-events": "none" });
@@ -809,7 +815,7 @@ function drawColumnChart(boxId, cfg) {
       row.append(key, val, name); tt.appendChild(row);
     };
     c.parts.filter(p => p.value).forEach(p =>
-      addRow({ color: cssVar(c.color), op: p.op, value: (p.value > 0 ? "+ " : "− ") + fmtBRL(Math.abs(p.value)), name: p.label }));
+      addRow({ color: cssVar(p.color), value: (p.value > 0 ? "+ " : "− ") + fmtBRL(Math.abs(p.value)), name: p.label }));
     addRow({ net: true, value: fmtBRL(c.net), name: "resultado líquido" });
     (c.extra || []).forEach(e => addRow({ value: e.value, name: e.label }));
     tt.style.display = "block";
@@ -976,20 +982,20 @@ function drawCharts() {
       T, label: T + " m", selected: T === P.prazo, ref: rendFII,
       cols: [
         {
-          name: "Saque", color: "--series-saque", net: s.absSaque[i],
+          name: "Saque", net: s.absSaque[i],
           parts: [
-            { label: "lucro do flip, líquido", value: flip.flipLiq, op: 1 },
-            { label: "custo de resgate", value: -resgate, op: 0.35 }
+            { label: "ganho da operação (flip)", value: flip.flipLiq, color: "--comp-flip" },
+            { label: "custo de resgate", value: -resgate, color: "--comp-custo" }
           ]
         },
         {
-          name: "Crédito", color: "--series-credito", net: s.absCredSel[i],
+          name: "Crédito", net: s.absCredSel[i],
           whisker: { lo: s.absCredMin[i], hi: s.absCredMax[i] },
           parts: [
-            { label: "lucro do flip, líquido", value: flip.flipLiq, op: 1 },
-            { label: "retorno dos FIIs (" + P.cenLabel + ")", value: rendFII, op: 0.5 },
-            { label: P.modo === "cdi" ? "juros do crédito" : "juros do crédito (IOF incluso)", value: -cc.juros, op: 0.35 },
-            { label: "IOF", value: -cc.iof, op: 0.2 }
+            { label: "ganho da operação (flip)", value: flip.flipLiq, color: "--comp-flip" },
+            { label: "retorno da carteira (" + P.cenLabel + ")", value: rendFII, color: "--band-ret" },
+            { label: P.modo === "cdi" ? "juros do crédito" : "juros do crédito (IOF incluso)", value: -cc.juros, color: "--comp-custo" },
+            { label: "IOF", value: -cc.iof, color: "--comp-custo" }
           ],
           extra: [
             { label: "com FIIs de " + fmtPct(P.rMin, 0) + " a " + fmtPct(P.rMax, 0), value: fmtBRL(s.absCredMin[i]) + " a " + fmtBRL(s.absCredMax[i]) },
