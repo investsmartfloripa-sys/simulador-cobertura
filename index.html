@@ -178,6 +178,7 @@
   .legend .lg-tick { width: 14px; height: 3px; border-radius: 2px; background: var(--text-primary); }
   .legend .lg-dash { width: 16px; border-top: 2px dashed var(--band-aplic); }
   .legend .lg-whisk { width: 2px; height: 12px; background: var(--text-primary); opacity: 0.55; }
+  .legend .lg-block { width: 12px; height: 12px; border-radius: 3px; background: var(--series-credito); flex: none; }
   .tooltip .tt-row.net { border-top: 1px solid var(--grid); margin-top: 4px; padding-top: 4px; }
 
   /* ---------- breakdown ---------- */
@@ -346,11 +347,14 @@
     <div class="legend">
       <span class="lg"><span class="lg-key" style="background:var(--series-saque); height:10px; border-radius:3px"></span>Saque</span>
       <span class="lg"><span class="lg-key" style="background:var(--series-credito); height:10px; border-radius:3px"></span>Crédito</span>
+      <span class="lg"><span class="lg-block"></span>Bloco cheio: ganho da operação</span>
+      <span class="lg"><span class="lg-block" style="opacity:0.5"></span>Bloco claro: retorno dos FIIs</span>
+      <span class="lg"><span class="lg-block" style="opacity:0.32"></span>Abaixo do zero: juros + IOF · resgate</span>
       <span class="lg"><span class="lg-tick"></span>Resultado líquido</span>
       <span class="lg"><span class="lg-dash"></span>Manter aplicado (referência)</span>
-      <span class="lg"><span class="lg-whisk"></span>Resultado do crédito com FIIs do mín. ao máx.</span>
+      <span class="lg"><span class="lg-whisk"></span>Crédito com FIIs do mín. ao máx.</span>
     </div>
-    <div class="hint" style="margin-top:8px">A incerteza fica no crédito: o fio vertical mostra onde o resultado líquido cairia com os FIIs rendendo do mínimo ao máximo — a coluna do saque não muda, porque o lucro é travado no dia do resgate. A diferença entre os traços escuros de cada par é a mesma do primeiro gráfico; aqui você vê de onde ela vem.</div>
+    <div class="hint" style="margin-top:8px">Lendo cada coluna: no <strong>saque</strong>, o ganho da operação menos o custo de resgate — a coluna não muda com o prazo, o lucro é travado no dia do resgate. No <strong>crédito</strong>, ganho da operação + retorno dos FIIs (bloco claro) − juros e IOF (abaixo do zero) = traço escuro. O fio vertical mostra onde o líquido do crédito cairia com FIIs do mínimo ao máximo. A conta armada do prazo selecionado está logo abaixo, na abertura dos números.</div>
   </section>
 
   <!-- ============ BREAKDOWN ============ -->
