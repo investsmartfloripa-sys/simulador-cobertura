@@ -175,6 +175,10 @@
   .legend .lg { display: flex; align-items: center; gap: 6px; }
   .legend .lg-key { width: 14px; height: 3px; border-radius: 2px; }
   .legend .lg-band { width: 14px; height: 10px; border-radius: 2px; opacity: 0.25; }
+  .legend .lg-tick { width: 14px; height: 3px; border-radius: 2px; background: var(--text-primary); }
+  .legend .lg-dash { width: 16px; border-top: 2px dashed var(--band-aplic); }
+  .legend .lg-whisk { width: 2px; height: 12px; background: var(--text-primary); opacity: 0.55; }
+  .tooltip .tt-row.net { border-top: 1px solid var(--grid); margin-top: 4px; padding-top: 4px; }
 
   /* ---------- breakdown ---------- */
   .break-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
@@ -334,18 +338,19 @@
     <div class="hint" style="margin-top:8px">A faixa amarela acompanha o saque porque é nele que o retorno dos FIIs vira custo — vender hoje é abrir mão da renda e recomprar mais caro se as cotas subirem; quanto mais elas renderem, pior o saque. No crédito, os FIIs continuam na carteira e o retorno deles acontece de qualquer forma; o custo desse caminho (juros + IOF) é contratual — por isso, uma linha única.</div>
   </section>
 
-  <!-- ============ GRÁFICO 2 · ABSOLUTO ============ -->
+  <!-- ============ GRÁFICO 2 · ABSOLUTO (COLUNAS) ============ -->
   <section class="card">
-    <div class="chart-title">Lucro absoluto de cada caminho até a venda</div>
-    <div class="chart-sub">Quanto cada caminho coloca no bolso, em R$: no saque, o lucro do flip, travado no dia do resgate; no crédito, o flip mais o retorno dos FIIs que continuam na carteira, menos juros e IOF. A linha cinza tracejada é a referência de não fazer a operação e só deixar o dinheiro rendendo.</div>
+    <div class="chart-title">Lucro absoluto — a soma das partes, prazo a prazo</div>
+    <div class="chart-sub">Cada coluna empilha o que compõe o resultado no mês da venda: acima do zero, o que entra (lucro do flip; no crédito, também o retorno dos FIIs que continuam na carteira); abaixo do zero, o que sai (custo de resgate no saque; juros e IOF no crédito). O traço escuro marca o resultado líquido de cada coluna. Passe o mouse sobre uma coluna para ver a conta completa.</div>
     <div class="chart-box" id="chartAbs"></div>
     <div class="legend">
-      <span class="lg"><span class="lg-key" style="background:var(--series-saque)"></span>Saque — lucro travado no resgate</span>
-      <span class="lg"><span class="lg-key" style="background:var(--series-credito)"></span>Crédito — com os FIIs na carteira</span>
-      <span class="lg"><span class="lg-band" style="background:var(--band-ret)"></span>Faixa amarela: retorno dos FIIs do mín. ao máx.</span>
-      <span class="lg"><span class="lg-key" style="background:var(--band-aplic)"></span>Manter aplicado (referência)</span>
+      <span class="lg"><span class="lg-key" style="background:var(--series-saque); height:10px; border-radius:3px"></span>Saque</span>
+      <span class="lg"><span class="lg-key" style="background:var(--series-credito); height:10px; border-radius:3px"></span>Crédito</span>
+      <span class="lg"><span class="lg-tick"></span>Resultado líquido</span>
+      <span class="lg"><span class="lg-dash"></span>Manter aplicado (referência)</span>
+      <span class="lg"><span class="lg-whisk"></span>Resultado do crédito com FIIs do mín. ao máx.</span>
     </div>
-    <div class="hint" style="margin-top:8px">Repare que a faixa amarela muda de linha: no lucro absoluto, quem depende do retorno dos FIIs é o crédito — eles continuam na carteira, para o bem e para o mal — enquanto o saque trava o lucro no dia do resgate e vira uma linha reta. Os dois gráficos contam a mesma história e a diferença entre crédito e saque é idêntica nos dois; o que muda é o ponto de referência.</div>
+    <div class="hint" style="margin-top:8px">A incerteza fica no crédito: o fio vertical mostra onde o resultado líquido cairia com os FIIs rendendo do mínimo ao máximo — a coluna do saque não muda, porque o lucro é travado no dia do resgate. A diferença entre os traços escuros de cada par é a mesma do primeiro gráfico; aqui você vê de onde ela vem.</div>
   </section>
 
   <!-- ============ BREAKDOWN ============ -->
@@ -701,6 +706,120 @@ function drawChart(boxId, cfg) {
   svg.addEventListener("pointerleave", () => { tt.style.display = "none"; cross.setAttribute("opacity", 0); });
 }
 
+/* gráfico de colunas empilhadas: composição do lucro absoluto por prazo.
+   Partes positivas empilham acima do zero, negativas abaixo; o traço escuro
+   marca o resultado líquido (soma) de cada coluna. */
+function drawColumnChart(boxId, cfg) {
+  const box = $(boxId);
+  box.innerHTML = "";
+  const W = box.clientWidth || 900, H = 360;
+  const ML = 70, MR = 16, MT = 14, MB = 34;
+  const iw = W - ML - MR, ih = H - MT - MB;
+
+  let lo = 0, hi = 0;
+  cfg.groups.forEach(g => {
+    if (g.ref != null) hi = Math.max(hi, g.ref);
+    g.cols.forEach(c => {
+      hi = Math.max(hi, c.parts.reduce((a, p) => a + Math.max(0, p.value), 0), c.whisker ? c.whisker.hi : 0);
+      lo = Math.min(lo, c.parts.reduce((a, p) => a + Math.min(0, p.value), 0), c.whisker ? c.whisker.lo : 0);
+    });
+  });
+  const pad = (hi - lo) * 0.06 || 1; hi += pad; if (lo < 0) lo -= pad;
+  const ticks = niceTicks(lo, hi, 6);
+  lo = Math.min(lo, ticks[0]); hi = Math.max(hi, ticks[ticks.length - 1]);
+  const y = v => MT + (hi - v) / (hi - lo) * ih;
+
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", cfg.aria);
+  const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); (parent || svg).appendChild(e); return e; };
+
+  for (const t of ticks) {
+    el("line", { x1: ML, x2: ML + iw, y1: y(t), y2: y(t), stroke: cssVar("--grid"), "stroke-width": 1 });
+    const lbl = el("text", { x: ML - 8, y: y(t) + 4, "text-anchor": "end", "font-size": 11, fill: cssVar("--text-muted"), style: "font-variant-numeric:tabular-nums" });
+    lbl.textContent = cfg.fmtTick(t);
+  }
+
+  const n = cfg.groups.length, gw = iw / n;
+  const colW = Math.max(14, Math.min(34, gw * 0.28));
+  const colGap = Math.max(4, colW * 0.2);
+
+  box.appendChild(svg);
+  const tt = document.createElement("div");
+  tt.className = "tooltip";
+  box.appendChild(tt);
+
+  cfg.groups.forEach((g, gi) => {
+    const gx = ML + gw * gi, cx = gx + gw / 2;
+    if (g.selected)
+      el("rect", { x: gx + 2, y: MT, width: gw - 4, height: ih, fill: cssVar("--series-saque"), opacity: 0.07, rx: 8 });
+    const xl = el("text", { x: cx, y: H - 14, "text-anchor": "middle", "font-size": 11, fill: g.selected ? cssVar("--text-primary") : cssVar("--text-muted"), "font-weight": g.selected ? 700 : 400 });
+    xl.textContent = g.label;
+    if (g.ref != null)
+      el("line", { x1: gx + gw * 0.12, x2: gx + gw * 0.88, y1: y(g.ref), y2: y(g.ref), stroke: cssVar("--band-aplic"), "stroke-width": 1.5, "stroke-dasharray": "4 3", "pointer-events": "none" });
+
+    const totW = g.cols.length * colW + (g.cols.length - 1) * colGap;
+    g.cols.forEach((c, ci) => {
+      const x0 = cx - totW / 2 + ci * (colW + colGap);
+      let up = 0, dn = 0;
+      c.parts.forEach(p => {
+        if (!p.value) return;
+        let yTopo, yBase;
+        if (p.value > 0) { yTopo = y(up + p.value); yBase = y(up); up += p.value; }
+        else { yTopo = y(dn); yBase = y(dn + p.value); dn += p.value; }
+        el("rect", { x: x0, y: yTopo + 1, width: colW, height: Math.max(0, yBase - yTopo - 2), fill: cssVar(c.color), opacity: p.op, rx: 2 });
+      });
+      if (c.whisker) {
+        const wx = x0 + colW / 2;
+        el("line", { x1: wx, x2: wx, y1: y(c.whisker.hi), y2: y(c.whisker.lo), stroke: cssVar("--text-primary"), "stroke-width": 1.5, opacity: 0.55, "pointer-events": "none" });
+        el("line", { x1: wx - 4, x2: wx + 4, y1: y(c.whisker.hi), y2: y(c.whisker.hi), stroke: cssVar("--text-primary"), "stroke-width": 1.5, opacity: 0.55, "pointer-events": "none" });
+        el("line", { x1: wx - 4, x2: wx + 4, y1: y(c.whisker.lo), y2: y(c.whisker.lo), stroke: cssVar("--text-primary"), "stroke-width": 1.5, opacity: 0.55, "pointer-events": "none" });
+      }
+      el("line", { x1: x0 - 2, x2: x0 + colW + 2, y1: y(c.net), y2: y(c.net), stroke: cssVar("--text-primary"), "stroke-width": 2.5, "pointer-events": "none" });
+      const hit = el("rect", { x: x0 - 3, y: MT, width: colW + 6, height: ih, fill: "transparent" });
+      hit.addEventListener("pointermove", () => showTip(g, c, x0));
+      hit.addEventListener("pointerleave", hideTip);
+    });
+  });
+
+  el("line", { x1: ML, x2: ML + iw, y1: y(0), y2: y(0), stroke: cssVar("--baseline"), "stroke-width": 1.5, "pointer-events": "none" });
+  const focus = el("rect", { x: 0, y: MT - 2, width: 0, height: ih + 4, fill: "none", stroke: cssVar("--text-muted"), "stroke-width": 1, rx: 5, opacity: 0, "pointer-events": "none" });
+
+  function showTip(g, c, x0) {
+    focus.setAttribute("x", x0 - 3);
+    focus.setAttribute("width", colW + 6);
+    focus.setAttribute("opacity", 0.7);
+    tt.textContent = "";
+    const head = document.createElement("div"); head.className = "tt-head";
+    head.textContent = "Venda no mês " + g.T + " · " + c.name;
+    tt.appendChild(head);
+    const addRow = opts => {
+      const row = document.createElement("div"); row.className = "tt-row" + (opts.net ? " net" : "");
+      const key = document.createElement("span"); key.className = "tt-key";
+      key.style.background = opts.color || "transparent";
+      if (opts.op != null) key.style.opacity = opts.op;
+      const val = document.createElement("span"); val.className = "tt-val"; val.textContent = opts.value;
+      const name = document.createElement("span"); name.className = "tt-name"; name.textContent = opts.name;
+      row.append(key, val, name); tt.appendChild(row);
+    };
+    c.parts.filter(p => p.value).forEach(p =>
+      addRow({ color: cssVar(c.color), op: p.op, value: (p.value > 0 ? "+ " : "− ") + fmtBRL(Math.abs(p.value)), name: p.label }));
+    addRow({ net: true, value: fmtBRL(c.net), name: "resultado líquido" });
+    (c.extra || []).forEach(e => addRow({ value: e.value, name: e.label }));
+    tt.style.display = "block";
+    const rect = svg.getBoundingClientRect();
+    const scale = rect.width ? rect.width / W : 1;
+    const bw = box.clientWidth, tw = tt.offsetWidth;
+    let left = (x0 + colW + 10) * scale;
+    if (left + tw > bw - 4) left = x0 * scale - tw - 10;
+    tt.style.left = Math.max(4, left) + "px";
+    tt.style.top = "16px";
+  }
+  function hideTip() { tt.style.display = "none"; focus.setAttribute("opacity", 0); }
+}
+
 /* ================= render ================= */
 let lastData = null;
 
@@ -820,7 +939,7 @@ function recalc() {
 
 function drawCharts() {
   if (!lastData) return;
-  const { P, s } = lastData;
+  const { P, flip, s } = lastData;
 
   drawChart("chartRel", {
     aria: "Resultado adicional de cada caminho por prazo de venda, comparado a manter aplicado",
@@ -842,26 +961,44 @@ function drawCharts() {
     ]
   });
 
-  const temNegativo = Math.min(...s.absSaque, ...s.absCredMin) < 0;
-  drawChart("chartAbs", {
-    aria: "Lucro absoluto de cada caminho por prazo de venda, com manter aplicado como referência",
-    includeZero: temNegativo,
-    zeroLabel: temNegativo ? "abaixo desta linha, prejuízo nominal" : null,
-    selected: P.prazo,
+  // colunas do lucro absoluto: composição nos prazos-chave + prazo selecionado
+  const horizontes = [...new Set([6, 12, 18, 24, 30, 36, P.prazo])].sort((a, b) => a - b);
+  const resgate = P.C * P.txResgate;
+  const grupos = horizontes.map(T => {
+    const i = T - 3;
+    const cc = custoCredito(P, T);
+    const rendFII = s.aplicAbsSel[i];
+    return {
+      T, label: T + " m", selected: T === P.prazo, ref: rendFII,
+      cols: [
+        {
+          name: "Saque", color: "--series-saque", net: s.absSaque[i],
+          parts: [
+            { label: "lucro do flip, líquido", value: flip.flipLiq, op: 1 },
+            { label: "custo de resgate", value: -resgate, op: 0.35 }
+          ]
+        },
+        {
+          name: "Crédito", color: "--series-credito", net: s.absCredSel[i],
+          whisker: { lo: s.absCredMin[i], hi: s.absCredMax[i] },
+          parts: [
+            { label: "lucro do flip, líquido", value: flip.flipLiq, op: 1 },
+            { label: "retorno dos FIIs (" + P.cenLabel + ")", value: rendFII, op: 0.5 },
+            { label: P.modo === "cdi" ? "juros do crédito" : "juros do crédito (IOF incluso)", value: -cc.juros, op: 0.35 },
+            { label: "IOF", value: -cc.iof, op: 0.2 }
+          ],
+          extra: [
+            { label: "com FIIs de " + fmtPct(P.rMin, 0) + " a " + fmtPct(P.rMax, 0), value: fmtBRL(s.absCredMin[i]) + " a " + fmtBRL(s.absCredMax[i]) },
+            { label: "manter aplicado (" + P.cenLabel + ")", value: fmtBRL(rendFII) }
+          ]
+        }
+      ]
+    };
+  });
+  drawColumnChart("chartAbs", {
+    aria: "Composição do lucro absoluto de cada caminho por prazo de venda",
     fmtTick: fmtMil,
-    bands: [{ low: s.absCredMin, high: s.absCredMax, color: "--band-ret" }],
-    series: [
-      { values: s.aplicAbsSel, color: "--band-aplic", dash: "5 4" },
-      { values: s.absSaque, color: "--series-saque" },
-      { values: s.absCredSel, color: "--series-credito" }
-    ],
-    tooltipRows: (j) => [
-      { color: "--series-saque", value: fmtBRL(s.absSaque[j]), name: "Saque (lucro travado)" },
-      { color: "--series-credito", value: fmtBRL(s.absCredSel[j]), name: "Crédito (retorno " + P.cenLabel + ")" },
-      { color: "--band-ret", value: fmtBRL(s.absCredMin[j]) + " a " + fmtBRL(s.absCredMax[j]), name: "faixa " + fmtPct(P.rMin, 0) + "–" + fmtPct(P.rMax, 0) },
-      { color: "--band-aplic", value: fmtBRL(s.aplicAbsSel[j]), name: "manter aplicado (" + P.cenLabel + ")" },
-      { value: s.tir[j] == null ? "—" : fmtPct(s.tir[j]) + " a.a.", name: "rentabilidade da operação" }
-    ]
+    groups: grupos
   });
 }
 

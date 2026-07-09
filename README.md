@@ -30,14 +30,17 @@ São **dois gráficos**, um para cada leitura:
 - **vs. manter aplicado** — resultado de cada caminho além de simplesmente
   deixar o capital rendendo (a faixa amarela de incerteza fica no saque, cujo
   custo de oportunidade depende do retorno dos FIIs).
-- **Lucro absoluto** — reais no bolso em cada caminho: o saque trava o lucro do
-  flip no dia do resgate (linha reta); o crédito soma o retorno dos FIIs
-  mantidos na carteira e desconta juros + IOF (a faixa amarela muda para ele).
-  Inclui a linha tracejada de referência de não fazer a operação.
+- **Lucro absoluto** — colunas empilhadas nos prazos-chave (6 a 36 meses, mais
+  o prazo do slider, destacado): acima do zero o que entra (lucro do flip; no
+  crédito, também o retorno dos FIIs mantidos), abaixo do zero o que sai
+  (resgate; juros e IOF). O traço escuro marca o resultado líquido de cada
+  coluna, o fio vertical mostra o resultado do crédito com FIIs do mínimo ao
+  máximo, e a linha tracejada é a referência de não fazer a operação.
 
-A faixa amarela representa sempre a mesma coisa — o retorno dos FIIs entre o
-mínimo e o máximo — e a diferença entre crédito e saque é idêntica nas duas
-leituras; o que muda é o ponto de referência.
+A incerteza representada é sempre a mesma — o retorno dos FIIs entre o mínimo
+e o máximo (faixa amarela no primeiro gráfico, fio vertical no segundo) — e a
+diferença entre crédito e saque é idêntica nas duas leituras; o que muda é o
+ponto de referência.
 
 Há ainda um seletor de **cenário de retorno (mínimo / médio / máximo)** que
 define qual ponto da faixa alimenta os cartões, a tabela e a abertura dos
