@@ -18,6 +18,7 @@
     --border: rgba(11,11,11,0.10);
     --series-saque: #2a78d6;
     --series-credito: #1baf7a;
+    --band-ret: #eda100;
     --good: #006300;
     --bad: #d03b3b;
     --band-aplic: #898781;
@@ -36,6 +37,7 @@
       --border: rgba(255,255,255,0.10);
       --series-saque: #3987e5;
       --series-credito: #199e70;
+      --band-ret: #c98500;
       --good: #0ca30c;
       --bad: #e66767;
       --band-aplic: #898781;
@@ -156,6 +158,8 @@
     cursor: pointer; white-space: nowrap; transition: background 0.15s, color 0.15s;
   }
   .seg-btn.active { background: var(--surface-1); color: var(--text-primary); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.10); }
+  .seg.full { display: flex; width: 100%; }
+  .seg.full .seg-btn { flex: 1; text-align: center; padding: 5px 4px; }
   .tooltip {
     position: absolute; pointer-events: none; display: none;
     background: var(--tooltip-bg); border: 1px solid var(--border);
@@ -248,6 +252,12 @@
           <input type="number" id="inRendMin" min="0" max="40" step="0.5" value="14"></div>
         <div class="field"><label for="inRendMax">Retorno total — máximo (% a.a.)</label>
           <input type="number" id="inRendMax" min="0" max="40" step="0.5" value="20"></div>
+        <div class="field"><label>Cenário usado nos números</label>
+          <div class="seg full" id="segRet" role="tablist" aria-label="Cenário de retorno dos FIIs">
+            <button type="button" class="seg-btn" data-r="min">Mínimo</button>
+            <button type="button" class="seg-btn active" data-r="mid">Médio</button>
+            <button type="button" class="seg-btn" data-r="max">Máximo</button>
+          </div></div>
         <label class="checkline"><input type="checkbox" id="inIsento" checked>
           Isentas de IR (FIIs, LCI, LCA, CRI…)</label>
         <div class="hint">Renda + valorização. Ao sacar, recomprar as cotas mais caras depois faz parte do custo de oportunidade — por isso a faixa mín.–máx. vira a banda sombreada do saque no gráfico. Desmarque a isenção para aplicar a tabela regressiva de IR (22,5% → 15%).</div>
@@ -311,36 +321,31 @@
     </div>
   </div>
 
-  <!-- ============ CHART 1 ============ -->
+  <!-- ============ GRÁFICO 1 · RELATIVO ============ -->
   <section class="card">
-    <div class="chart-head">
-      <div>
-        <div class="chart-title" id="chartTitle"></div>
-        <div class="chart-sub" id="chartSub"></div>
-      </div>
-      <div class="seg" role="tablist" aria-label="Modo de leitura do gráfico">
-        <button type="button" class="seg-btn active" data-view="rel">vs. manter aplicado</button>
-        <button type="button" class="seg-btn" data-view="abs">Lucro absoluto</button>
-      </div>
+    <div class="chart-title">Resultado de cada caminho, além de simplesmente manter o dinheiro aplicado</div>
+    <div class="chart-sub">Lucro do flip menos o custo do caminho escolhido (custo de oportunidade + resgate no saque; juros + IOF no crédito), pelo mês em que a venda acontecer. Acima de zero, a operação vale mais que deixar o capital rendendo. Passe o mouse (ou o dedo) sobre o gráfico para ver os valores e a rentabilidade anualizada de cada mês.</div>
+    <div class="chart-box" id="chartRel"></div>
+    <div class="legend">
+      <span class="lg"><span class="lg-key" style="background:var(--series-saque)"></span>Sacar as aplicações</span>
+      <span class="lg"><span class="lg-key" style="background:var(--series-credito)"></span>Crédito colateralizado</span>
+      <span class="lg"><span class="lg-band" style="background:var(--band-ret)"></span>Faixa amarela: retorno dos FIIs do mín. ao máx.</span>
     </div>
-    <div class="chart-box" id="chart1"></div>
-    <div id="legendRel">
-      <div class="legend">
-        <span class="lg"><span class="lg-key" style="background:var(--series-saque)"></span>Sacar as aplicações</span>
-        <span class="lg"><span class="lg-band" style="background:var(--series-saque)"></span>Faixa: retorno das aplicações do mín. ao máx.</span>
-        <span class="lg"><span class="lg-key" style="background:var(--series-credito)"></span>Crédito colateralizado</span>
-      </div>
-      <div class="hint" style="margin-top:8px">Por que a faixa só aparece no saque? Porque é nele que o retorno das aplicações vira custo — vender hoje é abrir mão da renda e recomprar mais caro se as cotas subirem; quanto mais elas renderem, pior o saque. No crédito, as aplicações continuam na carteira e o retorno delas acontece de qualquer forma; o custo desse caminho (juros + IOF) é contratual — por isso, uma linha única. Alterne para “Lucro absoluto” para ver a mesma comparação em reais no bolso.</div>
+    <div class="hint" style="margin-top:8px">A faixa amarela acompanha o saque porque é nele que o retorno dos FIIs vira custo — vender hoje é abrir mão da renda e recomprar mais caro se as cotas subirem; quanto mais elas renderem, pior o saque. No crédito, os FIIs continuam na carteira e o retorno deles acontece de qualquer forma; o custo desse caminho (juros + IOF) é contratual — por isso, uma linha única.</div>
+  </section>
+
+  <!-- ============ GRÁFICO 2 · ABSOLUTO ============ -->
+  <section class="card">
+    <div class="chart-title">Lucro absoluto de cada caminho até a venda</div>
+    <div class="chart-sub">Quanto cada caminho coloca no bolso, em R$: no saque, o lucro do flip, travado no dia do resgate; no crédito, o flip mais o retorno dos FIIs que continuam na carteira, menos juros e IOF. A linha cinza tracejada é a referência de não fazer a operação e só deixar o dinheiro rendendo.</div>
+    <div class="chart-box" id="chartAbs"></div>
+    <div class="legend">
+      <span class="lg"><span class="lg-key" style="background:var(--series-saque)"></span>Saque — lucro travado no resgate</span>
+      <span class="lg"><span class="lg-key" style="background:var(--series-credito)"></span>Crédito — com os FIIs na carteira</span>
+      <span class="lg"><span class="lg-band" style="background:var(--band-ret)"></span>Faixa amarela: retorno dos FIIs do mín. ao máx.</span>
+      <span class="lg"><span class="lg-key" style="background:var(--band-aplic)"></span>Manter aplicado (referência)</span>
     </div>
-    <div id="legendAbs" style="display:none">
-      <div class="legend">
-        <span class="lg"><span class="lg-key" style="background:var(--series-saque)"></span>Saque — lucro travado no resgate</span>
-        <span class="lg"><span class="lg-key" style="background:var(--series-credito)"></span>Crédito — com os FIIs na carteira</span>
-        <span class="lg"><span class="lg-band" style="background:var(--series-credito)"></span>Faixa: retorno dos FIIs do mín. ao máx.</span>
-        <span class="lg"><span class="lg-key" style="background:var(--band-aplic)"></span>Manter aplicado (referência, retorno médio)</span>
-      </div>
-      <div class="hint" style="margin-top:8px">Aqui a faixa muda de lado: no lucro absoluto, quem depende do retorno dos FIIs é o crédito — eles continuam na carteira, para o bem e para o mal — enquanto o saque trava o lucro no dia do resgate e vira uma linha reta. As duas leituras contam a mesma história e a diferença entre crédito e saque é idêntica nas duas; o que muda é o ponto de referência.</div>
-    </div>
+    <div class="hint" style="margin-top:8px">Repare que a faixa amarela muda de linha: no lucro absoluto, quem depende do retorno dos FIIs é o crédito — eles continuam na carteira, para o bem e para o mal — enquanto o saque trava o lucro no dia do resgate e vira uma linha reta. Os dois gráficos contam a mesma história e a diferença entre crédito e saque é idêntica nos dois; o que muda é o ponto de referência.</div>
   </section>
 
   <!-- ============ BREAKDOWN ============ -->
@@ -360,7 +365,13 @@
 
   <!-- ============ TABLE ============ -->
   <section class="card">
-    <h2>Resumo por prazo de venda</h2>
+    <div class="chart-head" style="margin-bottom:12px">
+      <h2 style="margin-bottom:0">Resumo por prazo de venda</h2>
+      <div class="seg" id="segTable" role="tablist" aria-label="Modo de leitura da tabela">
+        <button type="button" class="seg-btn active" data-view="rel">vs. manter aplicado</button>
+        <button type="button" class="seg-btn" data-view="abs">Lucro absoluto</button>
+      </div>
+    </div>
     <div class="table-scroll">
       <table>
         <thead>
@@ -421,11 +432,18 @@ $("inIsento").addEventListener("change", recalc);
 $("inPrazo").addEventListener("input", recalc);
 document.querySelectorAll(".chip").forEach(b =>
   b.addEventListener("click", () => { $("inPrazo").value = b.dataset.m; recalc(); }));
-let view = "rel"; // 'rel' = vs. manter aplicado · 'abs' = lucro absoluto
-document.querySelectorAll(".seg-btn").forEach(b =>
+let tableView = "rel"; // leitura da tabela: vs. manter aplicado | lucro absoluto
+document.querySelectorAll("#segTable .seg-btn").forEach(b =>
   b.addEventListener("click", () => {
-    view = b.dataset.view;
-    document.querySelectorAll(".seg-btn").forEach(x => x.classList.toggle("active", x === b));
+    tableView = b.dataset.view;
+    document.querySelectorAll("#segTable .seg-btn").forEach(x => x.classList.toggle("active", x === b));
+    recalc();
+  }));
+let retCen = "mid"; // cenário de retorno dos FIIs usado nos números centrais
+document.querySelectorAll("#segRet .seg-btn").forEach(b =>
+  b.addEventListener("click", () => {
+    retCen = b.dataset.r;
+    document.querySelectorAll("#segRet .seg-btn").forEach(x => x.classList.toggle("active", x === b));
     recalc();
   }));
 $("inModo").addEventListener("change", () => {
@@ -452,8 +470,10 @@ function lerPremissas() {
   const C = moneyVal($("inCapital"));
   let rMin = numVal($("inRendMin")) / 100, rMax = numVal($("inRendMax")) / 100;
   if (rMin > rMax) [rMin, rMax] = [rMax, rMin];
+  const rSel = retCen === "min" ? rMin : retCen === "max" ? rMax : (rMin + rMax) / 2;
+  const cenLabel = retCen === "min" ? "mínimo" : retCen === "max" ? "máximo" : "médio";
   return {
-    p, aquis, obra, venda, C, rMin, rMax, rMid: (rMin + rMax) / 2,
+    p, aquis, obra, venda, C, rMin, rMax, rSel, cenLabel,
     isento: $("inIsento").checked,
     txGanho: numVal($("inIRGanho")) / 100,
     txResgate: numVal($("inResgate")) / 100,
@@ -509,27 +529,27 @@ function calcSeries(P) {
   const flip = calcFlip(P);
   const resgate = P.C * P.txResgate;
   const s = {
-    saqueMid: [], saqueMin: [], saqueMax: [], cred: [],           // vs. manter aplicado
-    absSaque: [], absCredMid: [], absCredMin: [], absCredMax: [], // lucro absoluto
-    aplicAbsMid: [], aplicAbsMin: [], aplicAbsMax: [],            // referência: manter aplicado
+    saqueSel: [], saqueMin: [], saqueMax: [], cred: [],           // vs. manter aplicado
+    absSaque: [], absCredSel: [], absCredMin: [], absCredMax: [], // lucro absoluto
+    aplicAbsSel: [],                                              // referência: manter aplicado
     tir: [], aplicLo: [], aplicHi: []
   };
   for (const T of MESES) {
-    const rMidV = rendimentoLiquido(P, T, P.rMid);
+    const rSelV = rendimentoLiquido(P, T, P.rSel);
     const rMinV = rendimentoLiquido(P, T, P.rMin);
     const rMaxV = rendimentoLiquido(P, T, P.rMax);
     const cc = custoCredito(P, T).total;
     // retorno maior => custo de oportunidade maior => saque pior
-    s.saqueMid.push(flip.flipLiq - rMidV - resgate);
+    s.saqueSel.push(flip.flipLiq - rSelV - resgate);
     s.saqueMin.push(flip.flipLiq - rMaxV - resgate);
     s.saqueMax.push(flip.flipLiq - rMinV - resgate);
     s.cred.push(flip.flipLiq - cc);
     // absoluto: saque trava o flip; crédito soma o retorno dos FIIs mantidos
     s.absSaque.push(flip.flipLiq - resgate);
-    s.absCredMid.push(flip.flipLiq - cc + rMidV);
+    s.absCredSel.push(flip.flipLiq - cc + rSelV);
     s.absCredMin.push(flip.flipLiq - cc + rMinV);
     s.absCredMax.push(flip.flipLiq - cc + rMaxV);
-    s.aplicAbsMid.push(rMidV); s.aplicAbsMin.push(rMinV); s.aplicAbsMax.push(rMaxV);
+    s.aplicAbsSel.push(rSelV);
     s.tir.push(tirOperacao(P, flip, T));
     s.aplicLo.push(aplicLiquidaAA(P, T, P.rMin));
     s.aplicHi.push(aplicLiquidaAA(P, T, P.rMax));
@@ -712,45 +732,25 @@ function recalc() {
   document.querySelectorAll(".chip").forEach(b =>
     b.classList.toggle("active", Number(b.dataset.m) === T));
 
-  // título, subtítulo e legenda conforme a visão
-  if (view === "rel") {
-    $("chartTitle").textContent = "Resultado de cada caminho, além de simplesmente manter o dinheiro aplicado";
-    $("chartSub").textContent = "Lucro do flip menos o custo do caminho escolhido (custo de oportunidade + resgate no saque; juros + IOF no crédito), pelo mês em que a venda acontecer. Acima de zero, a operação vale mais que deixar o capital rendendo. Passe o mouse (ou o dedo) sobre o gráfico para ver os valores e a rentabilidade anualizada de cada mês.";
-  } else {
-    $("chartTitle").textContent = "Lucro absoluto de cada caminho até a venda";
-    $("chartSub").textContent = "Quanto cada caminho coloca no bolso, em R$: no saque, o lucro do flip, travado no dia do resgate; no crédito, o flip mais o retorno dos FIIs que continuam na carteira, menos juros e IOF. A linha cinza tracejada é a referência de não fazer a operação e só deixar o dinheiro rendendo.";
-  }
-  $("legendRel").style.display = view === "rel" ? "" : "none";
-  $("legendAbs").style.display = view === "abs" ? "" : "none";
-
-  // KPIs
-  const rSaqueMid = s.saqueMid[i], rSaqueMin = s.saqueMin[i], rSaqueMax = s.saqueMax[i], rCred = s.cred[i];
+  // KPIs (leitura vs. manter aplicado, no cenário de retorno escolhido)
+  const rSaque = s.saqueSel[i], rSaqueMin = s.saqueMin[i], rSaqueMax = s.saqueMax[i], rCred = s.cred[i];
   $("kpiFlip").textContent = fmtBRL(flip.flipLiq);
   $("kpiFlipSub").textContent = s.tir[i] == null
     ? "a venda não corrige com o tempo"
     : "vendendo no mês " + T + ", equivale a " + fmtPct(s.tir[i]) + " a.a. — a venda não corrige com o tempo";
   const resgate = P.C * P.txResgate;
   const kSaque = $("kpiSaque"), kCred = $("kpiCred");
-  if (view === "rel") {
-    kSaque.textContent = fmtBRL(rSaqueMid);
-    kSaque.className = "k-value " + (rSaqueMid >= 0 ? "pos" : "neg");
-    $("kpiSaqueSub").textContent = "faixa " + fmtBRL(rSaqueMin) + " a " + fmtBRL(rSaqueMax) + " · custo de oportunidade " + fmtBRL(rendimentoLiquido(P, T, P.rMid)) + (resgate ? " + resgate " + fmtBRL(resgate) : "");
-    kCred.textContent = fmtBRL(rCred);
-    kCred.className = "k-value " + (rCred >= 0 ? "pos" : "neg");
-    $("kpiCredSub").textContent = "juros " + fmtBRL(cred.juros) + (cred.iof ? " + IOF " + fmtBRL(cred.iof) : " (IOF incluso)");
-  } else {
-    kSaque.textContent = fmtBRL(s.absSaque[i]);
-    kSaque.className = "k-value " + (s.absSaque[i] >= 0 ? "pos" : "neg");
-    $("kpiSaqueSub").textContent = "lucro travado no dia do resgate — não depende do retorno dos FIIs";
-    kCred.textContent = fmtBRL(s.absCredMid[i]);
-    kCred.className = "k-value " + (s.absCredMid[i] >= 0 ? "pos" : "neg");
-    $("kpiCredSub").textContent = "faixa " + fmtBRL(s.absCredMin[i]) + " a " + fmtBRL(s.absCredMax[i]) + " · FIIs seguem na carteira";
-  }
-  const dif = rCred - rSaqueMid; // idêntica nas duas visões
+  kSaque.textContent = fmtBRL(rSaque);
+  kSaque.className = "k-value " + (rSaque >= 0 ? "pos" : "neg");
+  $("kpiSaqueSub").textContent = "faixa " + fmtBRL(rSaqueMin) + " a " + fmtBRL(rSaqueMax) + " · custo de oportunidade " + fmtBRL(rendimentoLiquido(P, T, P.rSel)) + (resgate ? " + resgate " + fmtBRL(resgate) : "");
+  kCred.textContent = fmtBRL(rCred);
+  kCred.className = "k-value " + (rCred >= 0 ? "pos" : "neg");
+  $("kpiCredSub").textContent = "juros " + fmtBRL(cred.juros) + (cred.iof ? " + IOF " + fmtBRL(cred.iof) : " (IOF incluso)");
+  const dif = rCred - rSaque; // idêntica nas leituras relativa e absoluta
   $("kpiDif").textContent = fmtBRL(dif);
   $("kpiDifSub").textContent = (dif >= 0
     ? "o crédito sai " + fmtBRL(dif) + " na frente do saque"
-    : "sacar sai " + fmtBRL(-dif) + " na frente do crédito") + " (retorno médio de " + fmtPct(P.rMid, 1) + " a.a.)";
+    : "sacar sai " + fmtBRL(-dif) + " na frente do crédito") + " (retorno " + P.cenLabel + " de " + fmtPct(P.rSel, 1) + " a.a.)";
 
   // breakdown
   $("breakTitle").textContent = "Abertura dos números — venda no mês " + T;
@@ -769,38 +769,27 @@ function recalc() {
     line("Lucro do flip, líquido", fmtBRL(flip.flipLiq), "total")
   );
   const bc = $("breakCusto"); bc.textContent = "";
-  if (view === "rel") {
-    bc.append(
-      line("Saque · retorno que deixa de ganhar — renda + valorização (" + fmtPct(P.rMid, 1) + " a.a. médio" + (P.isento ? ", isento de IR" : ", líq. de IR") + ")", "− " + fmtBRL(rendimentoLiquido(P, T, P.rMid))),
-      line("Saque · custo de resgate (" + fmtPct(P.txResgate, 1) + " do valor sacado)", "− " + fmtBRL(resgate)),
-      line("Saque · resultado além da aplicação", fmtBRL(rSaqueMid), "total"),
-      line("Crédito · juros no período", "− " + fmtBRL(cred.juros)),
-      line("Crédito · IOF", cred.iof ? "− " + fmtBRL(cred.iof) : "incluso na taxa"),
-      line("Crédito · resultado além da aplicação", fmtBRL(rCred), "total")
-    );
-  } else {
-    bc.append(
-      line("Saque · lucro do flip, líquido", fmtBRL(flip.flipLiq)),
-      line("Saque · custo de resgate (" + fmtPct(P.txResgate, 1) + " do valor sacado)", "− " + fmtBRL(resgate)),
-      line("Saque · lucro absoluto", fmtBRL(s.absSaque[i]), "total"),
-      line("Crédito · lucro do flip, líquido", fmtBRL(flip.flipLiq)),
-      line("Crédito · retorno dos FIIs mantidos (" + fmtPct(P.rMid, 1) + " a.a. médio)", "+ " + fmtBRL(rendimentoLiquido(P, T, P.rMid))),
-      line("Crédito · juros no período", "− " + fmtBRL(cred.juros)),
-      line("Crédito · IOF", cred.iof ? "− " + fmtBRL(cred.iof) : "incluso na taxa"),
-      line("Crédito · lucro absoluto", fmtBRL(s.absCredMid[i]), "total")
-    );
-  }
+  bc.append(
+    line("Saque · retorno que deixa de ganhar — renda + valorização (" + fmtPct(P.rSel, 1) + " a.a. " + P.cenLabel + (P.isento ? ", isento de IR" : ", líq. de IR") + ")", "− " + fmtBRL(rendimentoLiquido(P, T, P.rSel))),
+    line("Saque · custo de resgate (" + fmtPct(P.txResgate, 1) + " do valor sacado)", "− " + fmtBRL(resgate)),
+    line("Saque · resultado além da aplicação", fmtBRL(rSaque), "total"),
+    line("Saque · lucro absoluto (travado no resgate)", fmtBRL(s.absSaque[i]), "total"),
+    line("Crédito · juros no período", "− " + fmtBRL(cred.juros)),
+    line("Crédito · IOF", cred.iof ? "− " + fmtBRL(cred.iof) : "incluso na taxa"),
+    line("Crédito · resultado além da aplicação", fmtBRL(rCred), "total"),
+    line("Crédito · lucro absoluto (com FIIs a " + fmtPct(P.rSel, 1) + ")", fmtBRL(s.absCredSel[i]), "total")
+  );
 
   // table
-  $("thSaque").textContent = view === "rel" ? "Resultado — Saque" : "Lucro absoluto — Saque";
-  $("thCred").textContent = view === "rel" ? "Resultado — Crédito" : "Lucro absoluto — Crédito";
+  $("thSaque").textContent = tableView === "rel" ? "Resultado — Saque" : "Lucro absoluto — Saque";
+  $("thCred").textContent = tableView === "rel" ? "Resultado — Crédito" : "Lucro absoluto — Crédito";
   const tbody = $("tbody"); tbody.textContent = "";
   for (const m of [6, 9, 12, 18, 24, 30, 36]) {
     const j = MESES.indexOf(m);
     const tr = document.createElement("tr");
     if (m === T) tr.className = "selected";
-    const vSaque = view === "rel" ? s.saqueMid[j] : s.absSaque[j];
-    const vCred = view === "rel" ? s.cred[j] : s.absCredMid[j];
+    const vSaque = tableView === "rel" ? s.saqueSel[j] : s.absSaque[j];
+    const vCred = tableView === "rel" ? s.cred[j] : s.absCredSel[j];
     const cells = [
       m + " m" + (m % 12 === 0 ? " (" + (m / 12) + (m === 12 ? " ano" : " anos") + ")" : ""),
       fmtBRL(vSaque),
@@ -817,12 +806,12 @@ function recalc() {
     });
     tbody.appendChild(tr);
   }
-  $("tableNote").textContent = "Resultados calculados com o retorno médio da faixa (" + fmtPct(P.rMid, 1) +
+  $("tableNote").textContent = "Resultados calculados com o retorno " + P.cenLabel + " (" + fmtPct(P.rSel, 1) +
     " a.a.). “Operação (% a.a.)” é a taxa anualizada sobre o capital próprio de " + fmtBRL(P.C) + "." +
     (P.isento ? " Aplicações isentas de IR." : " Rendimento da aplicação líquido de IR regressivo.") +
-    (view === "rel"
+    (tableView === "rel"
       ? " Valores comparados a simplesmente manter o capital aplicado."
-      : " Valores absolutos — no crédito, incluem o retorno médio dos FIIs mantidos na carteira. A diferença entre os caminhos é a mesma nas duas leituras.");
+      : " Valores absolutos — no crédito, incluem o retorno dos FIIs mantidos na carteira. A diferença entre os caminhos é a mesma nas duas leituras.");
 
   drawCharts();
 }
@@ -831,49 +820,47 @@ function drawCharts() {
   if (!lastData) return;
   const { P, s } = lastData;
 
-  if (view === "rel") {
-    drawChart("chart1", {
-      aria: "Resultado adicional de cada caminho por prazo de venda, comparado a manter aplicado",
-      includeZero: true,
-      zeroLabel: "abaixo desta linha, manter aplicado rende mais",
-      selected: P.prazo,
-      fmtTick: fmtMil,
-      bands: [{ low: s.saqueMin, high: s.saqueMax, color: "--series-saque" }],
-      series: [
-        { values: s.saqueMid, color: "--series-saque" },
-        { values: s.cred, color: "--series-credito" }
-      ],
-      tooltipRows: (j) => [
-        { color: "--series-saque", value: fmtBRL(s.saqueMid[j]), name: "Saque (retorno médio)" },
-        { color: "--series-saque", value: fmtBRL(s.saqueMin[j]) + " a " + fmtBRL(s.saqueMax[j]), name: "faixa " + fmtPct(P.rMin, 0) + "–" + fmtPct(P.rMax, 0) },
-        { color: "--series-credito", value: fmtBRL(s.cred[j]), name: "Crédito" },
-        { value: s.tir[j] == null ? "—" : fmtPct(s.tir[j]) + " a.a.", name: "rentabilidade da operação" },
-        { value: fmtPct(s.aplicLo[j]) + " – " + fmtPct(s.aplicHi[j]) + " a.a.", name: "aplicação no período" }
-      ]
-    });
-  } else {
-    const temNegativo = Math.min(...s.absSaque, ...s.absCredMin, ...s.aplicAbsMin) < 0;
-    drawChart("chart1", {
-      aria: "Lucro absoluto de cada caminho por prazo de venda, com manter aplicado como referência",
-      includeZero: temNegativo,
-      zeroLabel: temNegativo ? "abaixo desta linha, prejuízo nominal" : null,
-      selected: P.prazo,
-      fmtTick: fmtMil,
-      bands: [{ low: s.absCredMin, high: s.absCredMax, color: "--series-credito" }],
-      series: [
-        { values: s.aplicAbsMid, color: "--band-aplic", dash: "5 4" },
-        { values: s.absSaque, color: "--series-saque" },
-        { values: s.absCredMid, color: "--series-credito" }
-      ],
-      tooltipRows: (j) => [
-        { color: "--series-saque", value: fmtBRL(s.absSaque[j]), name: "Saque (lucro travado)" },
-        { color: "--series-credito", value: fmtBRL(s.absCredMid[j]), name: "Crédito (retorno médio)" },
-        { color: "--series-credito", value: fmtBRL(s.absCredMin[j]) + " a " + fmtBRL(s.absCredMax[j]), name: "faixa " + fmtPct(P.rMin, 0) + "–" + fmtPct(P.rMax, 0) },
-        { color: "--band-aplic", value: fmtBRL(s.aplicAbsMid[j]), name: "manter aplicado (médio)" },
-        { value: s.tir[j] == null ? "—" : fmtPct(s.tir[j]) + " a.a.", name: "rentabilidade da operação" }
-      ]
-    });
-  }
+  drawChart("chartRel", {
+    aria: "Resultado adicional de cada caminho por prazo de venda, comparado a manter aplicado",
+    includeZero: true,
+    zeroLabel: "abaixo desta linha, manter aplicado rende mais",
+    selected: P.prazo,
+    fmtTick: fmtMil,
+    bands: [{ low: s.saqueMin, high: s.saqueMax, color: "--band-ret" }],
+    series: [
+      { values: s.saqueSel, color: "--series-saque" },
+      { values: s.cred, color: "--series-credito" }
+    ],
+    tooltipRows: (j) => [
+      { color: "--series-saque", value: fmtBRL(s.saqueSel[j]), name: "Saque (retorno " + P.cenLabel + ")" },
+      { color: "--band-ret", value: fmtBRL(s.saqueMin[j]) + " a " + fmtBRL(s.saqueMax[j]), name: "faixa " + fmtPct(P.rMin, 0) + "–" + fmtPct(P.rMax, 0) },
+      { color: "--series-credito", value: fmtBRL(s.cred[j]), name: "Crédito" },
+      { value: s.tir[j] == null ? "—" : fmtPct(s.tir[j]) + " a.a.", name: "rentabilidade da operação" },
+      { value: fmtPct(s.aplicLo[j]) + " – " + fmtPct(s.aplicHi[j]) + " a.a.", name: "aplicação no período" }
+    ]
+  });
+
+  const temNegativo = Math.min(...s.absSaque, ...s.absCredMin) < 0;
+  drawChart("chartAbs", {
+    aria: "Lucro absoluto de cada caminho por prazo de venda, com manter aplicado como referência",
+    includeZero: temNegativo,
+    zeroLabel: temNegativo ? "abaixo desta linha, prejuízo nominal" : null,
+    selected: P.prazo,
+    fmtTick: fmtMil,
+    bands: [{ low: s.absCredMin, high: s.absCredMax, color: "--band-ret" }],
+    series: [
+      { values: s.aplicAbsSel, color: "--band-aplic", dash: "5 4" },
+      { values: s.absSaque, color: "--series-saque" },
+      { values: s.absCredSel, color: "--series-credito" }
+    ],
+    tooltipRows: (j) => [
+      { color: "--series-saque", value: fmtBRL(s.absSaque[j]), name: "Saque (lucro travado)" },
+      { color: "--series-credito", value: fmtBRL(s.absCredSel[j]), name: "Crédito (retorno " + P.cenLabel + ")" },
+      { color: "--band-ret", value: fmtBRL(s.absCredMin[j]) + " a " + fmtBRL(s.absCredMax[j]), name: "faixa " + fmtPct(P.rMin, 0) + "–" + fmtPct(P.rMax, 0) },
+      { color: "--band-aplic", value: fmtBRL(s.aplicAbsSel[j]), name: "manter aplicado (" + P.cenLabel + ")" },
+      { value: s.tir[j] == null ? "—" : fmtPct(s.tir[j]) + " a.a.", name: "rentabilidade da operação" }
+    ]
+  });
 }
 
 /* re-render on resize & theme change */

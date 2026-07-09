@@ -25,18 +25,23 @@ participação, faixa de retorno das aplicações, condições do crédito e
 impostos. O slider de prazo atualiza os cartões de resultado, o gráfico, a
 abertura dos números e a tabela.
 
-O gráfico tem **duas leituras**, alternáveis no seletor do próprio cartão:
+São **dois gráficos**, um para cada leitura:
 
 - **vs. manter aplicado** — resultado de cada caminho além de simplesmente
-  deixar o capital rendendo (a faixa de incerteza fica no saque, cujo custo de
-  oportunidade depende do retorno dos FIIs).
+  deixar o capital rendendo (a faixa amarela de incerteza fica no saque, cujo
+  custo de oportunidade depende do retorno dos FIIs).
 - **Lucro absoluto** — reais no bolso em cada caminho: o saque trava o lucro do
-  flip no dia do resgate; o crédito soma o retorno dos FIIs mantidos na carteira
-  e desconta juros + IOF (a faixa de incerteza muda para o crédito). Inclui a
-  linha de referência de não fazer a operação.
+  flip no dia do resgate (linha reta); o crédito soma o retorno dos FIIs
+  mantidos na carteira e desconta juros + IOF (a faixa amarela muda para ele).
+  Inclui a linha tracejada de referência de não fazer a operação.
 
-A diferença entre crédito e saque é idêntica nas duas leituras — o que muda é o
-ponto de referência.
+A faixa amarela representa sempre a mesma coisa — o retorno dos FIIs entre o
+mínimo e o máximo — e a diferença entre crédito e saque é idêntica nas duas
+leituras; o que muda é o ponto de referência.
+
+Há ainda um seletor de **cenário de retorno (mínimo / médio / máximo)** que
+define qual ponto da faixa alimenta os cartões, a tabela e a abertura dos
+números, e a **tabela alterna** entre as leituras relativa e absoluta.
 
 ## Premissas do modelo
 
