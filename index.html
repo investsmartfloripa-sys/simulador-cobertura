@@ -284,13 +284,13 @@
         <legend><span class="step">4</span>Crédito colateralizado</legend>
         <div class="field"><label for="inModo">Modalidade</label>
           <select id="inModo">
-            <option value="cdi">CDI + spread mensal (+ IOF)</option>
+            <option value="cdi">CDI + spread a.a. (+ IOF)</option>
             <option value="pre">Prefixado % a.m. (IOF incluso)</option>
           </select></div>
         <div class="field" data-modo="cdi"><label for="inCDI">CDI esperado (% a.a.)</label>
           <input type="number" id="inCDI" min="0" max="40" step="0.1" value="14.0"></div>
-        <div class="field" data-modo="cdi"><label for="inSpread">Spread (% ao mês)</label>
-          <input type="number" id="inSpread" min="0" max="5" step="0.01" value="0.26"></div>
+        <div class="field" data-modo="cdi"><label for="inSpread">Spread (% ao ano)</label>
+          <input type="number" id="inSpread" min="0" max="10" step="0.05" value="1.7"></div>
         <div class="field" data-modo="pre" style="display:none"><label for="inPre">Taxa prefixada (% ao mês)</label>
           <input type="number" id="inPre" min="0" max="10" step="0.05" value="1.5"></div>
         <div class="hint" id="hintCredito"></div>
@@ -492,7 +492,7 @@ function lerPremissas() {
     txResgate: numVal($("inResgate")) / 100,
     modo: $("inModo").value,
     cdi: numVal($("inCDI")) / 100,
-    spreadM: numVal($("inSpread")) / 100,
+    spreadAA: numVal($("inSpread")) / 100,
     preM: numVal($("inPre")) / 100,
     prazo: Number($("inPrazo").value)
   };
@@ -518,7 +518,8 @@ function rendimentoLiquido(P, T, r) {
 function custoCredito(P, T) {
   let juros, iof = 0;
   if (P.modo === "cdi") {
-    const im = Math.pow(1 + P.cdi, 1 / 12) - 1 + P.spreadM;
+    // "CDI + X% a.a.": o spread soma na taxa anual, que é então mensalizada
+    const im = Math.pow(1 + P.cdi + P.spreadAA, 1 / 12) - 1;
     juros = P.C * (Math.pow(1 + im, T) - 1);
     iof = P.C * (0.0038 + 0.000082 * Math.min(T * 30, 365));
   } else {
@@ -859,8 +860,8 @@ function recalc() {
 
   const cred = custoCredito(P, T);
   if (P.modo === "cdi") {
-    const im = Math.pow(1 + P.cdi, 1 / 12) - 1 + P.spreadM;
-    $("hintCredito").textContent = "Taxa efetiva: " + fmtPct(im, 2) + " a.m. (" + fmtPct(Math.pow(1 + im, 12) - 1) + " a.a.) + IOF de 0,38% + 0,0082%/dia (máx. 365 dias).";
+    const im = Math.pow(1 + P.cdi + P.spreadAA, 1 / 12) - 1;
+    $("hintCredito").textContent = "Taxa efetiva: " + fmtPct(im, 2) + " a.m. (" + fmtPct(P.cdi + P.spreadAA, 1) + " a.a.) + IOF de 0,38% + 0,0082%/dia (máx. 365 dias).";
   } else {
     $("hintCredito").textContent = "Equivale a " + fmtPct(Math.pow(1 + P.preM, 12) - 1) + " a.a., já com IOF.";
   }

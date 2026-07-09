@@ -12,7 +12,7 @@ reforma e revenda de imóvel (flip), com participação de 25%.
    como custo de oportunidade, mais um custo de resgate configurável (padrão 1%
    do valor sacado — spread de saída e marcação a mercado).
 2. **Crédito colateralizado** — as aplicações continuam rendendo; os juros do
-   crédito (CDI + spread mensal + IOF, ou taxa prefixada mensal) entram como custo.
+   crédito (CDI + spread anual + IOF, ou taxa prefixada mensal) entram como custo.
 3. **O efeito do prazo de venda** — como o preço de venda não corrige com o
    tempo, cada mês a mais dilui a rentabilidade anualizada da operação. O tooltip
    do gráfico, o cartão do flip e a tabela mostram a taxa anualizada em cada
