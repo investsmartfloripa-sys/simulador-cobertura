@@ -510,9 +510,11 @@ function custoCredito(P, T) {
   return { juros, iof, total: juros + iof };
 }
 
-/* taxa anualizada da operação sobre o capital próprio (cenário saque) */
+/* taxa anualizada do caminho do saque sobre o capital próprio:
+   (capital + lucro travado) / capital, já líquida do custo de resgate,
+   para bater exatamente com o “lucro travado” exibido nos gráficos */
 function tirOperacao(P, flip, T) {
-  const wFinal = (P.C - flip.custoOp) + flip.receita - flip.ir;
+  const wFinal = (P.C - flip.custoOp) + flip.receita - flip.ir - P.C * P.txResgate;
   if (P.C <= 0 || wFinal <= 0) return null;
   return Math.pow(wFinal / P.C, 12 / T) - 1;
 }
@@ -737,7 +739,7 @@ function recalc() {
   $("kpiFlip").textContent = fmtBRL(flip.flipLiq);
   $("kpiFlipSub").textContent = s.tir[i] == null
     ? "a venda não corrige com o tempo"
-    : "vendendo no mês " + T + ", equivale a " + fmtPct(s.tir[i]) + " a.a. — a venda não corrige com o tempo";
+    : "pelo saque, equivale a " + fmtPct(s.tir[i]) + " a.a. vendendo no mês " + T + " — a venda não corrige com o tempo";
   const resgate = P.C * P.txResgate;
   const kSaque = $("kpiSaque"), kCred = $("kpiCred");
   kSaque.textContent = fmtBRL(rSaque);
@@ -807,7 +809,7 @@ function recalc() {
     tbody.appendChild(tr);
   }
   $("tableNote").textContent = "Resultados calculados com o retorno " + P.cenLabel + " (" + fmtPct(P.rSel, 1) +
-    " a.a.). “Operação (% a.a.)” é a taxa anualizada sobre o capital próprio de " + fmtBRL(P.C) + "." +
+    " a.a.). “Operação (% a.a.)” é a taxa anualizada do lucro travado do saque (líquido do custo de resgate) sobre o capital próprio de " + fmtBRL(P.C) + "." +
     (P.isento ? " Aplicações isentas de IR." : " Rendimento da aplicação líquido de IR regressivo.") +
     (tableView === "rel"
       ? " Valores comparados a simplesmente manter o capital aplicado."
