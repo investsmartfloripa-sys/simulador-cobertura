@@ -198,7 +198,7 @@
 
   /* ---------- table ---------- */
   .table-scroll { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 0.83rem; min-width: 680px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.83rem; min-width: 740px; }
   th { text-align: right; font-weight: 700; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); padding: 8px 10px; border-bottom: 2px solid var(--baseline); white-space: nowrap; }
   tbody tr:not(.selected):hover td { background: color-mix(in srgb, var(--text-primary) 3%, transparent); }
   th:first-child, td:first-child { text-align: left; }
@@ -379,21 +379,14 @@
     <div class="chart-head" style="margin-bottom:12px">
       <h2 style="margin-bottom:0">Resumo por prazo de venda</h2>
       <div class="seg" id="segTable" role="tablist" aria-label="Modo de leitura da tabela">
-        <button type="button" class="seg-btn active" data-view="rel">vs. manter aplicado</button>
-        <button type="button" class="seg-btn" data-view="abs">Lucro absoluto</button>
+        <button type="button" class="seg-btn active" data-view="rel">Relativo</button>
+        <button type="button" class="seg-btn" data-view="abs">Absoluto</button>
       </div>
     </div>
     <div class="table-scroll">
       <table>
         <thead>
-          <tr>
-            <th>Prazo</th>
-            <th id="thSaque">Resultado — Saque</th>
-            <th id="thCred">Resultado — Crédito</th>
-            <th>Diferença (Crédito − Saque)</th>
-            <th>Operação (% a.a.)</th>
-            <th>Aplicação (% a.a.)</th>
-          </tr>
+          <tr id="theadRow"></tr>
         </thead>
         <tbody id="tbody"></tbody>
       </table>
@@ -545,7 +538,7 @@ function calcSeries(P) {
     saqueSel: [], saqueMin: [], saqueMax: [], cred: [],           // vs. manter aplicado
     absSaque: [], absCredSel: [], absCredMin: [], absCredMax: [], // lucro absoluto
     aplicAbsSel: [],                                              // referência: manter aplicado
-    tir: [], aplicLo: [], aplicHi: []
+    tir: [], tirCred: [], aplicLo: [], aplicHi: []
   };
   for (const T of MESES) {
     const rSelV = rendimentoLiquido(P, T, P.rSel);
@@ -564,6 +557,9 @@ function calcSeries(P) {
     s.absCredMax.push(flip.flipLiq - cc + rMaxV);
     s.aplicAbsSel.push(rSelV);
     s.tir.push(tirOperacao(P, flip, T));
+    // taxa anualizada do caminho do crédito: (capital + lucro absoluto) / capital
+    const baseCred = P.C + flip.flipLiq - cc + rSelV;
+    s.tirCred.push(P.C > 0 && baseCred > 0 ? Math.pow(baseCred / P.C, 12 / T) - 1 : null);
     s.aplicLo.push(aplicLiquidaAA(P, T, P.rMin));
     s.aplicHi.push(aplicLiquidaAA(P, T, P.rMax));
   }
@@ -912,37 +908,45 @@ function recalc() {
   );
 
   // table
-  $("thSaque").textContent = tableView === "rel" ? "Resultado — Saque" : "Lucro absoluto — Saque";
-  $("thCred").textContent = tableView === "rel" ? "Resultado — Crédito" : "Lucro absoluto — Crédito";
+  const hr = $("theadRow"); hr.textContent = "";
+  (tableView === "rel"
+    ? ["Prazo", "Resultado — Saque", "Resultado — Crédito", "Diferença (Crédito − Saque)", "Saque (% a.a.)", "Crédito (% a.a.)"]
+    : ["Prazo", "Lucro — Saque", "Lucro — Crédito", "Ganho da carteira", "Custo do crédito", "Carteira − crédito", "Saque (% a.a.)", "Crédito (% a.a.)"]
+  ).forEach(t => { const e = document.createElement("th"); e.textContent = t; hr.appendChild(e); });
+  const pctOu = v => v == null ? "—" : fmtPct(v);
   const tbody = $("tbody"); tbody.textContent = "";
   for (const m of [6, 9, 12, 18, 24, 30, 36]) {
     const j = MESES.indexOf(m);
     const tr = document.createElement("tr");
     if (m === T) tr.className = "selected";
-    const vSaque = tableView === "rel" ? s.saqueSel[j] : s.absSaque[j];
-    const vCred = tableView === "rel" ? s.cred[j] : s.absCredSel[j];
-    const cells = [
-      m + " m" + (m % 12 === 0 ? " (" + (m / 12) + (m === 12 ? " ano" : " anos") + ")" : ""),
-      fmtBRL(vSaque),
-      fmtBRL(vCred),
-      fmtBRL(vCred - vSaque),
-      s.tir[j] == null ? "—" : fmtPct(s.tir[j]),
-      fmtPct(s.aplicLo[j]) + " – " + fmtPct(s.aplicHi[j])
-    ];
+    const prazoLbl = m + " m" + (m % 12 === 0 ? " (" + (m / 12) + (m === 12 ? " ano" : " anos") + ")" : "");
+    let cells, negIdx;
+    if (tableView === "rel") {
+      cells = [prazoLbl, fmtBRL(s.saqueSel[j]), fmtBRL(s.cred[j]), fmtBRL(s.cred[j] - s.saqueSel[j]),
+        pctOu(s.tir[j]), pctOu(s.tirCred[j])];
+      negIdx = [1, 2];
+    } else {
+      const ccm = custoCredito(P, m).total;
+      const rendm = s.aplicAbsSel[j];
+      cells = [prazoLbl, fmtBRL(s.absSaque[j]), fmtBRL(s.absCredSel[j]), fmtBRL(rendm), fmtBRL(ccm),
+        fmtBRL(rendm - ccm), pctOu(s.tir[j]), pctOu(s.tirCred[j])];
+      negIdx = [1, 2, 5];
+    }
     cells.forEach((c, k) => {
       const td = document.createElement("td");
       td.textContent = c;
-      if ((k === 1 || k === 2) && String(c).includes("−")) td.className = "neg";
+      if (negIdx.includes(k) && String(c).includes("−")) td.className = "neg";
       tr.appendChild(td);
     });
     tbody.appendChild(tr);
   }
   $("tableNote").textContent = "Resultados calculados com o retorno " + P.cenLabel + " (" + fmtPct(P.rSel, 1) +
-    " a.a.). “Operação (% a.a.)” é a taxa anualizada do lucro travado do saque (líquido do custo de resgate) sobre o capital próprio de " + fmtBRL(P.C) + "." +
+    " a.a.). “% a.a.” é a taxa anualizada do lucro de cada caminho sobre o capital próprio de " + fmtBRL(P.C) +
+    " — no saque, o lucro travado, líquido do custo de resgate; no crédito, incluindo o retorno da carteira e o custo do crédito." +
     (P.isento ? " Aplicações isentas de IR." : " Rendimento da aplicação líquido de IR regressivo.") +
     (tableView === "rel"
-      ? " Valores comparados a simplesmente manter o capital aplicado."
-      : " Valores absolutos — no crédito, incluem o retorno dos FIIs mantidos na carteira. A diferença entre os caminhos é a mesma nas duas leituras.");
+      ? " Valores em R$ comparados a simplesmente manter o capital aplicado."
+      : " Valores em R$ absolutos. “Carteira − crédito” mostra se o retorno dos FIIs paga o custo do crédito; a diferença Crédito − Saque é essa conta mais o custo de resgate evitado no saque.");
 
   drawCharts();
 }
